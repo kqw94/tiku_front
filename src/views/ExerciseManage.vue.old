@@ -1,0 +1,428 @@
+<template>
+  <div>
+    <!-- 面包屑导航（保持在外） -->
+    <el-breadcrumb separator="/" style="margin-bottom: 20px;">
+      <el-breadcrumb-item :to="{ path: '/exercise' }">题库</el-breadcrumb-item>
+      <el-breadcrumb-item v-if="currentMajor" :to="{ path: `/exercise/major/${currentCategoryId}` }">
+        {{ currentCategoryName }}
+      </el-breadcrumb-item>
+      <el-breadcrumb-item v-if="currentChapter" :to="{ path: `/exercise/major/${currentCategoryId}/chapter/${currentMajorId}` }">
+        {{ currentMajorName }}
+      </el-breadcrumb-item>
+      <el-breadcrumb-item v-if="currentExamGroup">
+        {{ currentChapterName }}
+      </el-breadcrumb-item>
+    </el-breadcrumb>
+
+    <el-card>
+      <!-- 专业列表 -->
+      <div v-if="!currentMajor">
+        <el-button type="primary" @click="showAddDialog('category')">添加专业</el-button>
+        <el-table :data="categories" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="category_id" label="ID" width="100" />
+          <el-table-column prop="category_name" label="专业" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewMajors(scope.row)">查看</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'category')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'category')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-container">
+          <el-pagination
+            v-if="total > 0"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+
+      <!-- 科目列表 -->
+      <div v-else-if="!currentChapter">
+        <el-button type="primary" @click="showAddDialog('major')">添加科目</el-button>
+        <el-table :data="majors" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="major_id" label="ID" width="100" />
+          <el-table-column prop="major_name" label="科目" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewChapters(scope.row)">查看</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'major')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'major')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-container">
+          <el-pagination
+            v-if="total > 0"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+
+      <!-- 章节列表 -->
+      <div v-else-if="!currentExamGroup">
+        <el-button type="primary" @click="showAddDialog('chapter')">添加章节</el-button>
+        <el-table :data="chapters" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="chapter_id" label="ID" width="100" />
+          <el-table-column prop="chapter_name" label="章节" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewExamGroups(scope.row)">查看</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'chapter')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'chapter')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-container">
+          <el-pagination
+            v-if="total > 0"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+
+      <!-- 考点列表 -->
+      <div v-else>
+        <el-button type="primary" @click="showAddDialog('examgroup')">添加考点</el-button>
+        <el-table :data="examGroups" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="examgroup_id" label="ID" width="100" />
+          <el-table-column prop="examgroup_name" label="考点" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewDetails(scope.row)">查看</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'examgroup')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'examgroup')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-container">
+          <el-pagination
+            v-if="total > 0"
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+    </el-card>
+
+    <!-- 添加/编辑弹窗 -->
+    <el-dialog :title="dialogTitle" v-model="dialogVisible" width="30%">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
+        <el-form-item :label="formLabel" prop="name">
+          <el-input v-model="form.name" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveItem">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import axios from 'axios';
+import { ElMessage, ElMessageBox } from 'element-plus';
+
+const router = useRouter();
+const route = useRoute();
+
+const categories = ref([]);
+const majors = ref([]);
+const chapters = ref([]);
+const examGroups = ref([]);
+
+const currentMajor = ref(false);
+const currentChapter = ref(false);
+const currentExamGroup = ref(false);
+const currentCategoryId = ref(null);
+const currentCategoryName = ref('');
+const currentMajorId = ref(null);
+const currentMajorName = ref('');
+const currentChapterId = ref(null);
+const currentChapterName = ref('');
+
+const dialogVisible = ref(false);
+const dialogTitle = ref('');
+const form = ref({ id: null, name: '' });
+const formRef = ref(null);
+const formLabel = ref('');
+const currentType = ref('');
+
+// 分页相关
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+
+const rules = {
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+};
+
+// 获取专业列表
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('http://127.0.0.1:8000/api/categories/', {
+      params: { page: currentPage.value, page_size: pageSize.value },
+    });
+    categories.value = response.data.results || [];
+    total.value = response.data.count || 0;
+  } catch (error) {
+    ElMessage.error('获取专业列表失败');
+    console.error(error);
+    categories.value = [];
+    total.value = 0;
+  }
+};
+
+// 获取科目列表
+const fetchMajors = async (categoryId) => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/api/categories/${categoryId}/`, {
+      params: { page: currentPage.value, page_size: pageSize.value },
+    });
+    majors.value = response.data.majors || [];
+    currentCategoryName.value = response.data.category_name;
+    total.value = response.data.majors_count || majors.value.length;
+  } catch (error) {
+    ElMessage.error('获取科目列表失败');
+    console.error(error);
+    majors.value = [];
+    total.value = 0;
+  }
+};
+
+// 获取章节列表
+const fetchChapters = async (majorId) => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/api/majors/${majorId}/`, {
+      params: { page: currentPage.value, page_size: pageSize.value },
+    });
+    chapters.value = response.data.chapters || [];
+    currentMajorName.value = response.data.major_name;
+    total.value = response.data.chapters_count || chapters.value.length;
+  } catch (error) {
+    ElMessage.error('获取章节列表失败');
+    console.error(error);
+    chapters.value = [];
+    total.value = 0;
+  }
+};
+
+// 获取考点列表
+const fetchExamGroups = async (chapterId) => {
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/api/chapters/${chapterId}/`, {
+      params: { page: currentPage.value, page_size: pageSize.value },
+    });
+    examGroups.value = response.data.exam_groups || [];
+    currentChapterName.value = response.data.chapter_name;
+    total.value = response.data.exam_groups_count || examGroups.value.length;
+  } catch (error) {
+    ElMessage.error('获取考点列表失败');
+    console.error(error);
+    examGroups.value = [];
+    total.value = 0;
+  }
+};
+
+// 查看下一级
+const viewMajors = (row) => {
+  currentMajor.value = true;
+  currentChapter.value = false;
+  currentExamGroup.value = false;
+  currentCategoryId.value = row.category_id;
+  currentPage.value = 1; // 重置分页
+  fetchMajors(row.category_id);
+  router.push(`/exercise/major/${row.category_id}`);
+};
+
+const viewChapters = (row) => {
+  currentChapter.value = true;
+  currentExamGroup.value = false;
+  currentMajorId.value = row.major_id;
+  currentPage.value = 1; // 重置分页
+  fetchChapters(row.major_id);
+  router.push(`/exercise/major/${currentCategoryId.value}/chapter/${row.major_id}`);
+};
+
+const viewExamGroups = (row) => {
+  currentExamGroup.value = true;
+  currentChapterId.value = row.chapter_id;
+  currentPage.value = 1; // 重置分页
+  fetchExamGroups(row.chapter_id);
+  router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${row.chapter_id}`);
+};
+
+const viewDetails = (row) => {
+  console.log('查看考点详情:', row);
+};
+
+// 添加/编辑弹窗
+const showAddDialog = (type) => {
+  currentType.value = type;
+  dialogTitle.value = `添加${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : '考点'}`;
+  formLabel.value = `${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : '考点'}名称`;
+  form.value = { id: null, name: '' };
+  dialogVisible.value = true;
+};
+
+const editItem = (row, type) => {
+  currentType.value = type;
+  dialogTitle.value = `编辑${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : '考点'}`;
+  formLabel.value = `${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : '考点'}名称`;
+  form.value = { id: row[`${type}_id`], name: row[`${type}_name`] };
+  dialogVisible.value = true;
+};
+
+// 保存数据
+const saveItem = () => {
+  formRef.value.validate(async (valid) => {
+    if (valid) {
+      const type = currentType.value;
+      const urlMap = {
+        'category': 'categories',
+        'major': 'majors',
+        'chapter': 'chapters',
+        'examgroup': 'examgroups',
+      };
+      const url = `http://127.0.0.1:8000/api/${urlMap[type]}/`;
+      const data = {
+        [`${type}_name`]: form.value.name,
+      };
+      // 自动关联到当前层级
+      if (type === 'major' && currentCategoryId.value) {
+        data.category = currentCategoryId.value;
+      } else if (type === 'chapter' && currentMajorId.value) {
+        data.major = currentMajorId.value;
+      } else if (type === 'examgroup' && currentChapterId.value) {
+        data.chapter = currentChapterId.value;
+      }
+
+      try {
+        if (form.value.id) {
+          await axios.put(`${url}${form.value.id}/`, data);
+          ElMessage.success('更新成功');
+        } else {
+          await axios.post(url, data);
+          ElMessage.success('添加成功');
+        }
+        dialogVisible.value = false;
+        refreshList();
+      } catch (error) {
+        ElMessage.error('保存失败');
+        console.error(error.response ? error.response.data : error);
+      }
+    }
+  });
+};
+
+// 删除数据
+const deleteItem = (row, type) => {
+  ElMessageBox.confirm(`确定删除${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : '考点'} ${row[`${type}_name`]} 吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(async () => {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/${type}s/${row[`${type}_id`]}/`);
+      ElMessage.success('删除成功');
+      refreshList();
+    } catch (error) {
+      ElMessage.error('删除失败');
+      console.error(error);
+    }
+  });
+};
+
+// 刷新当前列表
+const refreshList = () => {
+  if (currentExamGroup.value) fetchExamGroups(currentChapterId.value);
+  else if (currentChapter.value) fetchChapters(currentMajorId.value);
+  else if (currentMajor.value) fetchMajors(currentCategoryId.value);
+  else fetchCategories();
+};
+
+// 分页事件
+const handleSizeChange = (val) => {
+  pageSize.value = val;
+  refreshList();
+};
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val;
+  refreshList();
+};
+
+// 监听路由变化
+watch(() => route.path, (newPath) => {
+  currentPage.value = 1; // 重置分页
+  const majorMatch = newPath.match(/\/exercise\/major\/(\d+)/);
+  const chapterMatch = newPath.match(/\/exercise\/major\/(\d+)\/chapter\/(\d+)/);
+  const examGroupMatch = newPath.match(/\/exercise\/major\/(\d+)\/chapter\/(\d+)\/examgroup\/(\d+)/);
+
+  if (examGroupMatch) {
+    currentMajor.value = true;
+    currentChapter.value = true;
+    currentExamGroup.value = true;
+    currentCategoryId.value = Number(examGroupMatch[1]);
+    currentMajorId.value = Number(examGroupMatch[2]);
+    currentChapterId.value = Number(examGroupMatch[3]);
+    fetchExamGroups(currentChapterId.value);
+  } else if (chapterMatch) {
+    currentMajor.value = true;
+    currentChapter.value = true;
+    currentExamGroup.value = false;
+    currentCategoryId.value = Number(chapterMatch[1]);
+    currentMajorId.value = Number(chapterMatch[2]);
+    fetchChapters(currentMajorId.value);
+  } else if (majorMatch) {
+    currentMajor.value = true;
+    currentChapter.value = false;
+    currentExamGroup.value = false;
+    currentCategoryId.value = Number(majorMatch[1]);
+    fetchMajors(currentCategoryId.value);
+  } else {
+    currentMajor.value = false;
+    currentChapter.value = false;
+    currentExamGroup.value = false;
+    fetchCategories();
+  }
+});
+
+onMounted(() => {
+  refreshList();
+});
+</script>
+
+<style scoped>
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+</style>
