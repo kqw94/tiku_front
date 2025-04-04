@@ -14,7 +14,7 @@
         {{ currentChapterName }}
       </el-breadcrumb-item>
       <el-breadcrumb-item v-if="currentExercise">
-        题目列表
+        {{ currentExamGroupName}}
       </el-breadcrumb-item>
     </el-breadcrumb>
 
@@ -31,6 +31,7 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
+        @batch-edit="batchEditExercises"
       />
       <major-list
         v-else-if="!currentChapter"
@@ -44,6 +45,7 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
+        @batch-edit="batchEditExercises"
       />
       <chapter-list
         v-else-if="!currentExamGroup"
@@ -57,6 +59,7 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
+        @batch-edit="batchEditExercises"
       />
       <exam-group-list
         v-else-if="!currentExercise"
@@ -65,11 +68,12 @@
         :page-size="pageSize"
         :total="total"
         @add="showAddDialog"
-        @view-exercises="viewExercises"
+        @view-exercises="viewExercises2"
         @edit="editItem"
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
+        @batch-edit="batchEditExercises"
       />
       <exercise-list
         v-else
@@ -138,6 +142,7 @@ export default {
     const currentChapterId = ref(null);
     const currentChapterName = ref('');
     const currentExamGroupId = ref(null);
+    const currentExamGroupName = ref('');
 
     const dialogVisible = ref(false);
     const dialogTitle = ref('');
@@ -148,6 +153,7 @@ export default {
     const currentPage = ref(1);
     const pageSize = ref(10);
     const total = ref(0);
+
 
     // 获取所有 Category
     const fetchCategories = async () => {
@@ -217,6 +223,28 @@ export default {
       }
     };
 
+    // 获取 Exercises Examgroup 单一版
+    const fetchExercises2 = async (examgroupId) => {
+      try {
+        const params = {
+          page: currentPage.value,
+          page_size: pageSize.value,
+          examgroup_id: examgroupId
+        };
+        const response =  await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
+        exercises.value = response.data.results || [];
+        currentExamGroupName.value = examGroups.value.find(c => c.examgroup_id === examgroupId)?.examgroup_name || '未知考点';
+        total.value = response.data.count || 0;
+      } catch (error) {
+        ElMessage.error('获取考点列表失败');
+        console.error(error);
+        exercises.value = [];
+        total.value = 0;
+      }
+    };
+
+    
+
     // 获取 Exercises
     const fetchExercises = async () => {
       try {
@@ -238,6 +266,23 @@ export default {
         exercises.value = [];
         total.value = 0;
       }
+    };
+
+    const batchEditExercises = (row, type) => {
+      let query = '';
+      if (type === 'category') {
+        query = `?category_id=${row.category_id}`;
+      } else if (type === 'major') {
+        query = `?major_id=${row.major_id}`;
+      } else if (type === 'chapter') {
+        query = `?chapter_id=${row.chapter_id}`;
+      } else if (type === 'examgroup') {
+        query = `?examgroup_id=${row.examgroup_id}`;
+      } else {
+        console.error('Unknown type:', type); // 调试用
+        return;
+      }
+      router.push(`/exercise/batch-edit${query}`);
     };
 
     // 查看下一级
@@ -269,6 +314,14 @@ export default {
       currentPage.value = 1;
       fetchExamGroups(row.chapter_id);
       router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${row.chapter_id}`);
+    };
+
+    const viewExercises2 = (row) => {
+      currentExercise.value = true;
+      currentExamGroupId.value = row.examgroup_id;
+      currentPage.value = 1;
+      fetchExercises2(row.examgroup_id);
+      router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${currentChapterId.value}/exercises/${currentExamGroupId.value}`);
     };
 
     const viewExercises = (row) => {
@@ -359,7 +412,7 @@ export default {
       });
     };
 
-    
+
     // 刷新当前列表
     const refreshList = () => {
       if (currentExercise.value) {
@@ -458,6 +511,7 @@ export default {
       currentChapterId,
       currentChapterName,
       currentExamGroupId,
+      currentExamGroupName,
       dialogVisible,
       dialogTitle,
       form,
@@ -475,6 +529,7 @@ export default {
       viewChapters,
       viewExamGroups,
       viewExercises,
+      viewExercises2,
       showAddDialog,
       editItem,
       saveItem,
@@ -482,6 +537,7 @@ export default {
       handleSizeChange,
       handleCurrentChange,
       refreshList,
+      batchEditExercises
     };
   },
 };

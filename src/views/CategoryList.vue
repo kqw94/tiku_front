@@ -9,6 +9,7 @@
           <el-button type="text" @click="$emit('view-majors', scope.row)">查看</el-button>
           <el-button type="text" @click="$emit('edit', scope.row, 'category')">编辑</el-button>
           <el-button type="text" @click="$emit('delete', scope.row, 'category')">删除</el-button>
+          <el-button type="text" @click="$emit('batch-edit', scope.row, 'category')">批量编辑题目</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -36,7 +37,7 @@ export default {
     pageSize: { type: Number, required: true },
     total: { type: Number, required: true },
   },
-  emits: ['add', 'view-majors', 'edit', 'delete', 'size-change', 'current-change'],
+  emits: ['add', 'view-majors', 'edit', 'delete', 'size-change', 'current-change', 'batch-edit'],
 };
 </script>
 

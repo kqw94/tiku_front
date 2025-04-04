@@ -29,8 +29,32 @@
             <el-icon><Notebook /></el-icon>
             <span>知识点管理</span>
           </el-menu-item>
+          <!-- 新增工具箱子菜单 -->
+          
         </el-sub-menu>
-
+        
+        <el-sub-menu index="toolbox">
+            <template #title>
+              <el-icon><Tools /></el-icon>
+              <span>工具箱</span>
+            </template>
+            <el-menu-item index="crawler-tool">
+              <el-icon><Search /></el-icon>
+              <span>爬虫工具</span>
+            </el-menu-item>
+            <el-menu-item index="llm-analysis">
+              <el-icon><Cpu /></el-icon>
+              <span>大模型解析</span>
+            </el-menu-item>
+            <el-menu-item index="format-convert">
+              <el-icon><Edit /></el-icon>
+              <span>格式转换</span>
+            </el-menu-item>
+            <el-menu-item index="image-upload">
+              <el-icon><Upload /></el-icon>
+              <span>图片上传</span>
+            </el-menu-item>
+          </el-sub-menu>
         <!-- 用户管理（带子菜单） -->
         <el-sub-menu index="user">
           <template #title>
@@ -90,7 +114,12 @@ import {
   User, 
   Avatar, 
   Lock, 
-  ArrowDown 
+  ArrowDown,
+  Tools,        // 新增图标
+  Search,      // 爬虫工具
+  Cpu,         // 大模型解析
+  Edit,        // 格式转换
+  Upload       // 图片上传
 } from '@element-plus/icons-vue';
 
 const activeMenu = ref('home');
@@ -105,6 +134,10 @@ const handleMenuSelect = (key) => {
     'knowledge': '/knowledge',
     'user-management': '/user-management',
     'permission': '/permission',
+    'crawler-tool': '/toolbox/crawler-tool',
+    'llm-analysis': '/toolbox/llm-analysis',
+    'format-convert': '/toolbox/format-convert',
+    'image-upload': '/toolbox/image-upload',
   };
   router.push(routeMap[key] || '/');
 };
@@ -114,26 +147,26 @@ const handleMenuSelect = (key) => {
 .logo {
   font-size: 20px;
   font-weight: bold;
-  height: 60px; /* 与 el-header 高度一致 */
-  line-height: 60px; /* 垂直居中 */
+  height: 60px;
+  line-height: 60px;
   text-align: center;
   background-color: #f5f7fa;
   border-bottom: 1px solid #e6e6e6;
 }
 .el-header {
-  height: 60px; /* 固定高度，与 logo 一致 */
+  height: 60px;
   background-color: #f5f7fa;
   border-bottom: 1px solid #e6e6e6;
-  padding: 0 20px; /* 调整内边距 */
+  padding: 0 20px;
 }
 .el-aside {
   background-color: #fff;
   border-right: 1px solid #e6e6e6;
 }
 .el-menu {
-  border-right: none; /* 移除菜单右侧边框，与 aside 对齐 */
+  border-right: none;
 }
 .el-dropdown-link {
-  line-height: 60px; /* 与 header 高度对齐 */
+  line-height: 60px;
 }
 </style>
