@@ -6,10 +6,9 @@
       <el-table-column prop="category_name" label="专业" />
       <el-table-column label="操作" width="300">
         <template #default="scope">
-          <el-button type="text" @click="$emit('view-majors', scope.row)">查看</el-button>
+          <el-button type="text" @click="$emit('view-majors', scope.row)">查看科目</el-button>
           <el-button type="text" @click="$emit('edit', scope.row, 'category')">编辑</el-button>
           <el-button type="text" @click="$emit('delete', scope.row, 'category')">删除</el-button>
-          <el-button type="text" @click="$emit('batch-edit', scope.row, 'category')">批量编辑题目</el-button>
         </template>
       </el-table-column>
     </el-table>

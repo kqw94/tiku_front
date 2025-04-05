@@ -1,9 +1,9 @@
 <!-- src/views/ExerciseManage.vue -->
 <template>
   <div>
-    <!-- 面包屑导航（保持不变） -->
+    <!-- 面包屑导航 -->
     <el-breadcrumb separator="/" style="margin-bottom: 20px;">
-      <el-breadcrumb-item :to="{ path: '/exercise' }">题库</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/chapter' }">章节</el-breadcrumb-item>
       <el-breadcrumb-item v-if="currentMajor" :to="{ path: `/exercise/major/${currentCategoryId}` }">
         {{ currentCategoryName }}
       </el-breadcrumb-item>
@@ -14,7 +14,7 @@
         {{ currentChapterName }}
       </el-breadcrumb-item>
       <el-breadcrumb-item v-if="currentExercise">
-        {{ currentExamGroupName}}
+        {{ currentExamGroupName }}
       </el-breadcrumb-item>
     </el-breadcrumb>
 
@@ -31,7 +31,6 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        @batch-edit="batchEditExercises"
       />
       <major-list
         v-else-if="!currentChapter"
@@ -45,7 +44,6 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        @batch-edit="batchEditExercises"
       />
       <chapter-list
         v-else-if="!currentExamGroup"
@@ -59,7 +57,6 @@
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        @batch-edit="batchEditExercises"
       />
       <exam-group-list
         v-else-if="!currentExercise"
@@ -68,12 +65,11 @@
         :page-size="pageSize"
         :total="total"
         @add="showAddDialog"
-        @view-exercises="viewExercises2"
+        @view-exercises="viewExercises"
         @edit="editItem"
         @delete="deleteItem"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
-        @batch-edit="batchEditExercises"
       />
       <exercise-list
         v-else
@@ -89,6 +85,7 @@
       />
     </el-card>
 
+    <!-- 编辑/添加弹窗 -->
     <edit-dialog
       :dialog-title="dialogTitle"
       :form-label="formLabel"
@@ -96,6 +93,26 @@
       v-model="dialogVisible"
       @save="saveItem"
     />
+
+    <!-- 题目列表弹窗 -->
+    <el-dialog title="题目列表" v-model="exerciseDialogVisible" width="80%">
+      <exercise-list
+        :exercises="exercises"
+        :current-page="exercisePage"
+        :page-size="exercisePageSize"
+        :total="exerciseTotal"
+        @size-change="handleExerciseSizeChange"
+        @current-change="handleExerciseCurrentChange"
+        @edit="editItem"
+        @delete="deleteItem"
+        @save-exercise="saveExercise"
+      />
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="exerciseDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -154,6 +171,10 @@ export default {
     const pageSize = ref(10);
     const total = ref(0);
 
+    const exerciseDialogVisible = ref(false); // 题目弹窗可见性
+    const exercisePage = ref(1); // 题目分页
+    const exercisePageSize = ref(10);
+    const exerciseTotal = ref(0);
 
     // 获取所有 Category
     const fetchCategories = async () => {
@@ -166,8 +187,6 @@ export default {
       } catch (error) {
         ElMessage.error('获取分类列表失败');
         console.error(error);
-        categories.value = [];
-        total.value = 0;
       }
     };
 
@@ -178,14 +197,11 @@ export default {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         majors.value = response.data.results || [];
-        // 从第一个 Major 中提取 category_name（假设后端未直接返回）
         currentCategoryName.value = categories.value.find(c => c.category_id === categoryId)?.category_name || '未知分类';
         total.value = response.data.count || 0;
       } catch (error) {
         ElMessage.error('获取专业列表失败');
         console.error(error);
-        majors.value = [];
-        total.value = 0;
       }
     };
 
@@ -201,8 +217,6 @@ export default {
       } catch (error) {
         ElMessage.error('获取章节列表失败');
         console.error(error);
-        chapters.value = [];
-        total.value = 0;
       }
     };
 
@@ -218,72 +232,54 @@ export default {
       } catch (error) {
         ElMessage.error('获取考点列表失败');
         console.error(error);
-        examGroups.value = [];
-        total.value = 0;
       }
     };
 
-    // 获取 Exercises Examgroup 单一版
-    const fetchExercises2 = async (examgroupId) => {
+    // 获取 Exercises (弹窗版本)
+    const fetchExercises = async (examgroupId) => {
       try {
         const params = {
-          page: currentPage.value,
-          page_size: pageSize.value,
-          examgroup_id: examgroupId
+          page: exercisePage.value,
+          page_size: exercisePageSize.value,
+          examgroup_id: examgroupId,
         };
-        const response =  await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
-        exercises.value = response.data.results || [];
-        currentExamGroupName.value = examGroups.value.find(c => c.examgroup_id === examgroupId)?.examgroup_name || '未知考点';
-        total.value = response.data.count || 0;
-      } catch (error) {
-        ElMessage.error('获取考点列表失败');
-        console.error(error);
-        exercises.value = [];
-        total.value = 0;
-      }
-    };
-
-    
-
-    // 获取 Exercises
-    const fetchExercises = async () => {
-      try {
-        const params = {
-          page: currentPage.value,
-          page_size: pageSize.value,
-        };
-        if (currentCategoryId.value) params.category_id = currentCategoryId.value;
-        if (currentMajorId.value) params.major_id = currentMajorId.value;
-        if (currentChapterId.value) params.chapter_id = currentChapterId.value;
-        if (currentExamGroupId.value) params.examgroup_id = currentExamGroupId.value;
-
         const response = await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
         exercises.value = response.data.results || [];
-        total.value = response.data.count || 0;
+        exerciseTotal.value = response.data.count || 0;
+        exerciseDialogVisible.value = true;
+        currentExamGroupName.value = examGroups.value.find(c => c.examgroup_id === examgroupId)?.examgroup_name || '未知考点';
       } catch (error) {
         ElMessage.error('获取题目列表失败');
         console.error(error);
-        exercises.value = [];
-        total.value = 0;
       }
     };
 
-    const batchEditExercises = (row, type) => {
-      let query = '';
-      if (type === 'category') {
-        query = `?category_id=${row.category_id}`;
-      } else if (type === 'major') {
-        query = `?major_id=${row.major_id}`;
-      } else if (type === 'chapter') {
-        query = `?chapter_id=${row.chapter_id}`;
-      } else if (type === 'examgroup') {
-        query = `?examgroup_id=${row.examgroup_id}`;
-      } else {
-        console.error('Unknown type:', type); // 调试用
-        return;
-      }
-      router.push(`/exercise/batch-edit${query}`);
-    };
+// ExamManage.vue
+const saveExercise = async (exerciseData) => {
+  try {
+    const url = exerciseData.exercise_id
+      ? `http://127.0.0.1:8000/api/exercises/${exerciseData.exercise_id}/`
+      : 'http://127.0.0.1:8000/api/exercises/';
+    const method = exerciseData.exercise_id ? 'put' : 'post';
+    await axios({
+      method,
+      url,
+      data: {
+        exercise_id: exerciseData.exercise_id,
+        stem: exerciseData.stem,
+        questions: exerciseData.questions, // 包含 question_order
+        answer: exerciseData.answer,
+        analysis: exerciseData.analysis,
+        // exam_id: currentExamId.value,
+      },
+    });
+    ElMessage.success(exerciseData.exercise_id ? '更新成功' : '添加成功');
+    fetchExercises(currentExamGroupId.value); // 刷新列表
+  } catch (error) {
+    ElMessage.error('保存失败');
+    console.error(error.response ? error.response.data : error);
+  }
+};
 
     // 查看下一级
     const viewMajors = (row) => {
@@ -316,20 +312,10 @@ export default {
       router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${row.chapter_id}`);
     };
 
-    const viewExercises2 = (row) => {
-      currentExercise.value = true;
-      currentExamGroupId.value = row.examgroup_id;
-      currentPage.value = 1;
-      fetchExercises2(row.examgroup_id);
-      router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${currentChapterId.value}/exercises/${currentExamGroupId.value}`);
-    };
-
     const viewExercises = (row) => {
-      currentExercise.value = true;
+      exercisePage.value = 1; // 重置分页
       currentExamGroupId.value = row.examgroup_id;
-      currentPage.value = 1;
-      fetchExercises();
-      router.push(`/exercise/major/${currentCategoryId.value}/chapter/${currentMajorId.value}/examgroup/${currentChapterId.value}/exercises/${currentExamGroupId.value}`);
+      fetchExercises(row.examgroup_id);
     };
 
     // 添加/编辑弹窗
@@ -350,73 +336,104 @@ export default {
     };
 
     // 保存数据
-    const saveItem = (formData) => {
+    const saveItem = async (formData) => {
       const type = currentType.value;
-      const urlMap = {
-        'category': 'categories',
-        'major': 'majors',
-        'chapter': 'chapters',
-        'examgroup': 'examgroups',
-        'exercise': 'exercises',
-      };
-      const url = `http://127.0.0.1:8000/api/${urlMap[type]}/`;
+      let url = '';
       let data = {};
 
-      if (type === 'exercise') {
-        // 简单实现，仅保存 exercise_id 和 stem，后续可扩展
-        data = {
-          exercise_id: formData.id || `${Date.now()}`, // 临时生成 ID，后端应处理
-          stem: formData.name, // 使用 name 作为 stem
-          exam_group: currentExamGroupId.value,
-        };
-      } else {
-        data = { [`${type}_name`]: formData.name };
-        if (type === 'major' && currentCategoryId.value) data.category = currentCategoryId.value;
-        else if (type === 'chapter' && currentMajorId.value) data.major = currentMajorId.value;
-        else if (type === 'examgroup' && currentChapterId.value) data.chapter = currentChapterId.value;
+      switch (type) {
+        case 'category':
+          url = form.value.id
+            ? `http://127.0.0.1:8000/api/crud/categories/${form.value.id}/`
+            : 'http://127.0.0.1:8000/api/crud/categories/create/';
+          data = { category_name: formData.name };
+          break;
+        case 'major':
+          url = form.value.id
+            ? `http://127.0.0.1:8000/api/crud/majors/${form.value.id}/`
+            : 'http://127.0.0.1:8000/api/crud/majors/create/';
+          data = { major_name: formData.name, category_id: currentCategoryId.value };
+          break;
+        case 'chapter':
+          url = form.value.id
+            ? `http://127.0.0.1:8000/api/crud/chapters/${form.value.id}/`
+            : 'http://127.0.0.1:8000/api/crud/chapters/create/';
+          data = { chapter_name: formData.name, major_id: currentMajorId.value };
+          break;
+        case 'examgroup':
+          url = form.value.id
+            ? `http://127.0.0.1:8000/api/crud/examgroups/${form.value.id}/`
+            : 'http://127.0.0.1:8000/api/crud/examgroups/create/';
+          data = { examgroup_name: formData.name, chapter_id: currentChapterId.value };
+          break;
+        case 'exercise':
+          url = form.value.id
+            ? `http://127.0.0.1:8000/api/exercises/${form.value.id}/`
+            : 'http://127.0.0.1:8000/api/exercises/';
+          data = {
+            exercise_id: formData.id || `${Date.now()}`,
+            stem: { stem_content: formData.name },
+            exam_group_id: currentExamGroupId.value,
+          };
+          break;
       }
 
-      axios({
-        method: form.value.id ? 'put' : 'post',
-        url: form.value.id ? `${url}${form.value.id}/` : url,
-        data,
-      })
-        .then(() => {
-          ElMessage.success(form.value.id ? '更新成功' : '添加成功');
-          dialogVisible.value = false;
-          refreshList();
-        })
-        .catch((error) => {
-          ElMessage.error('保存失败');
-          console.error(error.response ? error.response.data : error);
-        });
+      try {
+        const method = form.value.id ? 'put' : 'post';
+        await axios({ method, url, data });
+        ElMessage.success(form.value.id ? '更新成功' : '添加成功');
+        dialogVisible.value = false;
+        refreshList();
+      } catch (error) {
+        ElMessage.error('保存失败');
+        console.error(error.response ? error.response.data : error);
+      }
     };
 
     // 删除数据
     const deleteItem = (row, type) => {
-      ElMessageBox.confirm(`确定删除${type === 'category' ? '分类' : type === 'major' ? '专业' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'} ${row[`${type}_name`] || row.exercise_id} 吗？`, '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }).then(() => {
+      ElMessageBox.confirm(
+        `确定删除${type === 'category' ? '分类' : type === 'major' ? '专业' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'} ${row[`${type}_name`] || row.exercise_id} 吗？`,
+        '提示',
+        { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      ).then(async () => {
         const idField = type === 'exercise' ? 'exercise_id' : `${type}_id`;
-        axios.delete(`http://127.0.0.1:8000/api/${type}s/${row[idField]}/`)
-          .then(() => {
-            ElMessage.success('删除成功');
-            refreshList();
-          })
-          .catch((error) => {
-            ElMessage.error('删除失败');
-            console.error(error);
-          });
+        let url = '';
+        switch (type) {
+          case 'category':
+            url = `http://127.0.0.1:8000/api/crud/categories/${row[idField]}/`;
+            break;
+          case 'major':
+            url = `http://127.0.0.1:8000/api/crud/majors/${row[idField]}/`;
+            break;
+          case 'chapter':
+            url = `http://127.0.0.1:8000/api/crud/chapters/${row[idField]}/`;
+            break;
+          case 'examgroup':
+            url = `http://127.0.0.1:8000/api/crud/examgroups/${row[idField]}/`;
+            break;
+          case 'exercise':
+            url = `http://127.0.0.1:8000/api/exercises/${row[idField]}/`;
+            break;
+        }
+
+        try {
+          await axios.delete(url);
+          ElMessage.success('删除成功');
+          refreshList();
+        } catch (error) {
+          ElMessage.error('删除失败');
+          console.error(error.response ? error.response.data : error);
+        }
+      }).catch(() => {
+        ElMessage.info('已取消删除');
       });
     };
-
 
     // 刷新当前列表
     const refreshList = () => {
       if (currentExercise.value) {
-        fetchExercises();
+        fetchExercises(currentExamGroupId.value);
       } else if (currentExamGroup.value) {
         fetchExamGroups(currentChapterId.value);
       } else if (currentChapter.value) {
@@ -439,6 +456,17 @@ export default {
       refreshList();
     };
 
+    // 题目分页事件
+    const handleExerciseSizeChange = (val) => {
+      exercisePageSize.value = val;
+      fetchExercises(currentExamGroupId.value);
+    };
+
+    const handleExerciseCurrentChange = (val) => {
+      exercisePage.value = val;
+      fetchExercises(currentExamGroupId.value);
+    };
+
     // 监听路由变化
     watch(() => route.path, (newPath) => {
       currentPage.value = 1;
@@ -456,7 +484,7 @@ export default {
         currentMajorId.value = Number(exercisesMatch[2]);
         currentChapterId.value = Number(exercisesMatch[3]);
         currentExamGroupId.value = Number(exercisesMatch[4]);
-        fetchExercises();
+        fetchExercises(currentExamGroupId.value);
       } else if (examGroupMatch) {
         currentMajor.value = true;
         currentChapter.value = true;
@@ -520,24 +548,29 @@ export default {
       currentPage,
       pageSize,
       total,
+      exerciseDialogVisible,
+      exercisePage,
+      exercisePageSize,
+      exerciseTotal,
       fetchCategories,
       fetchMajors,
       fetchChapters,
       fetchExamGroups,
       fetchExercises,
+      saveExercise,
       viewMajors,
       viewChapters,
       viewExamGroups,
       viewExercises,
-      viewExercises2,
       showAddDialog,
       editItem,
       saveItem,
       deleteItem,
       handleSizeChange,
       handleCurrentChange,
+      handleExerciseSizeChange,
+      handleExerciseCurrentChange,
       refreshList,
-      batchEditExercises
     };
   },
 };

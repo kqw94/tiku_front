@@ -1,26 +1,74 @@
+<!-- src/views/ExamManage.vue -->
 <template>
   <div>
-    <el-card>
-      <el-button type="primary" @click="showAddExamDialog">添加试卷</el-button>
-      <el-table :data="exams" style="width: 100%; margin-top: 20px;" border>
-        <el-table-column prop="exam_id" label="ID" width="100" />
-        <el-table-column prop="exam_full_name" label="试卷名称" width="200" />
-        <el-table-column prop="from_school" label="来源学校" width="150" />
-        <el-table-column prop="exam_time" label="考试时间" width="150" />
-        <el-table-column label="操作" width="200">
-          <template #default="scope">
-            <el-button type="text" @click="editExam(scope.row)">编辑</el-button>
-            <el-button type="text" @click="deleteExam(scope.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <!-- 面包屑导航 -->
+    <el-breadcrumb separator="/" style="margin-bottom: 20px;">
+      <el-breadcrumb-item :to="{ path: '/exam-paper' }">试卷</el-breadcrumb-item>
+      <el-breadcrumb-item v-if="currentSchool" :to="{ path: `/exam/category/${currentCategoryId}` }">
+        {{ currentCategoryName }}
+      </el-breadcrumb-item>
+      <el-breadcrumb-item v-if="currentExam">
+        {{ currentSchoolName }}
+      </el-breadcrumb-item>
+    </el-breadcrumb>
 
-      <!-- 分页器 -->
+    <el-card>
+      <!-- 专业 (Category) 列表 -->
+      <div v-if="!currentSchool">
+        <el-button type="primary" @click="showAddDialog('category')">添加专业</el-button>
+        <el-table :data="categories" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="category_id" label="ID" width="100" />
+          <el-table-column prop="category_name" label="专业名称" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewSchools(scope.row)">查看院校</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'category')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'category')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 院校 (School) 列表 -->
+      <div v-else-if="!currentExam">
+        <el-button type="primary" @click="showAddDialog('school')">添加院校</el-button>
+        <el-table :data="schools" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="school_id" label="ID" width="100" />
+          <el-table-column prop="name" label="院校名称" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewExams(scope.row)">查看试卷</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'school')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'school')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 试卷列表 (Exam List) -->
+      <div v-else>
+        <el-button type="primary" @click="showAddDialog('exam')">添加试卷</el-button>
+        <el-table :data="exams" style="width: 100%; margin-top: 20px;" border>
+          <el-table-column prop="exam_id" label="ID" width="100" />
+          <el-table-column prop="exam_time" label="考试时间" width="150" />
+          <el-table-column prop="exam_code" label="考试代码" width="150" />
+          <el-table-column prop="exam_full_name" label="考试全称" />
+          <el-table-column label="操作" width="300">
+            <template #default="scope">
+              <el-button type="text" @click="viewExercises(scope.row)">查看</el-button>
+              <el-button type="text" @click="editItem(scope.row, 'exam')">编辑</el-button>
+              <el-button type="text" @click="deleteItem(scope.row, 'exam')">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 分页 -->
       <div class="pagination-container">
         <el-pagination
           v-if="total > 0"
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
+          :current-page="currentPage"
+          :page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
@@ -30,137 +78,451 @@
       </div>
     </el-card>
 
-    <!-- 添加/编辑试卷弹窗 -->
+    <!-- 编辑/添加弹窗 -->
     <el-dialog :title="dialogTitle" v-model="dialogVisible" width="30%">
-      <el-form :model="examForm" label-width="80px" :rules="rules" ref="examFormRef">
-        <el-form-item label="试卷名称" prop="exam_full_name">
-          <el-input v-model="examForm.exam_full_name" />
+      <el-form :model="form" label-width="80px">
+        <el-form-item v-if="currentType === 'category'" label="专业名称">
+          <el-input v-model="form.category_name"></el-input>
         </el-form-item>
-        <el-form-item label="来源学校" prop="from_school">
-          <el-input v-model="examForm.from_school" />
+        <el-form-item v-else-if="currentType === 'school'" label="院校名称">
+          <el-input v-model="form.name"></el-input>
         </el-form-item>
-        <el-form-item label="考试时间" prop="exam_time">
-          <el-input v-model="examForm.exam_time" />
+        <el-form-item v-else-if="currentType === 'exam'" label="考试时间">
+          <el-input v-model="form.exam_time"></el-input>
         </el-form-item>
-        <el-form-item label="试卷编码" prop="exam_code">
-          <el-input v-model="examForm.exam_code" />
+        <el-form-item v-if="currentType === 'exam'" label="考试代码">
+          <el-input v-model="form.exam_code"></el-input>
+        </el-form-item>
+        <el-form-item v-if="currentType === 'exam'" label="考试全称">
+          <el-input v-model="form.exam_full_name"></el-input>
+        </el-form-item>
+        <el-form-item v-if="currentType === 'exam'" label="学校名称">
+          <el-input v-model="form.from_school" disabled></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveExam">保存</el-button>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveItem">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 题目列表弹窗 -->
+    <el-dialog title="题目列表" v-model="exerciseDialogVisible" width="80%">
+      <exercise-list
+      :exercises="exercises"
+      :current-page="exercisePage"
+      :page-size="exercisePageSize"
+      :total="exerciseTotal"
+      @size-change="handleExerciseSizeChange"
+      @current-change="handleExerciseCurrentChange"
+      @edit="editItem"
+      @delete="deleteItem"
+      @save-exercise="saveExercise"
+    />
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="exerciseDialogVisible = false">关闭</el-button>
+        </span>
       </template>
     </el-dialog>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue';
+<script>
+import { ref, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import ExerciseList from './ExerciseList.vue'; // 引入 ExerciseList 组件
 
-const exams = ref([]);
-const dialogVisible = ref(false);
-const dialogTitle = ref('');
-const examForm = ref({
-  exam_id: null,
-  exam_full_name: '',
-  from_school: '',
-  exam_time: '',
-  exam_code: '',
-});
-const examFormRef = ref(null);
+export default {
+  name: 'ExamManage',
+  components: {
+    ExerciseList, // 注册组件
+  },
+  setup() {
+    const router = useRouter();
+    const route = useRoute();
 
-// 分页相关
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(0);
+    const categories = ref([]);
+    const schools = ref([]);
+    const exams = ref([]);
+    const exercises = ref([]); // 题目数据
 
-const rules = {
-  exam_full_name: [{ required: true, message: '请输入试卷名称', trigger: 'blur' }],
-};
+    const currentSchool = ref(false);
+    const currentExam = ref(false);
+    const currentCategoryId = ref(null);
+    const currentCategoryName = ref('');
+    const currentSchoolId = ref(null);
+    const currentSchoolName = ref('');
 
-// 获取分页数据
-const fetchExams = async () => {
+    const dialogVisible = ref(false);
+    const dialogTitle = ref('');
+    const form = ref({
+      category_id: null,
+      school_id: null,
+      exam_id: null,
+      category_name: '',
+      name: '',
+      exam_time: '',
+      exam_code: '',
+      exam_full_name: '',
+      from_school: '',
+    });
+    const currentType = ref('');
+
+    const currentPage = ref(1);
+    const pageSize = ref(10);
+    const total = ref(0);
+
+    const exerciseDialogVisible = ref(false); // 题目弹窗可见性
+    const exercisePage = ref(1); // 题目分页
+    const exercisePageSize = ref(10);
+    const exerciseTotal = ref(0);
+
+    // 获取所有 Category
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/categories/', {
+          params: { page: currentPage.value, page_size: pageSize.value },
+        });
+        categories.value = response.data.results || [];
+        total.value = response.data.count || 0;
+      } catch (error) {
+        ElMessage.error('获取专业列表失败');
+        console.error(error);
+      }
+    };
+
+    // 获取学校列表
+    const fetchSchools = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/schools/', {
+          params: { page: currentPage.value, page_size: pageSize.value },
+        });
+        schools.value = response.data.results || [];
+        total.value = response.data.count || 0;
+      } catch (error) {
+        ElMessage.error('获取院校列表失败');
+        console.error(error);
+      }
+    };
+
+    // 获取试卷列表
+    const fetchExams = async (schoolId) => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/exams/', {
+          params: {
+            school_id: schoolId,
+            category_id: currentCategoryId.value,
+            page: currentPage.value,
+            page_size: pageSize.value,
+          },
+        });
+        exams.value = response.data.results || [];
+        total.value = response.data.count || 0;
+        currentSchoolName.value = schools.value.find(s => s.school_id === schoolId)?.name || '未知院校';
+      } catch (error) {
+        ElMessage.error('获取试卷列表失败');
+        console.error(error);
+      }
+    };
+
+    // 获取题目列表
+    const fetchExercises = async (examId) => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/exercises/', {
+          params: {
+            exam_id: examId, // 假设后端支持按 exam_id 查询题目
+            page: exercisePage.value,
+            page_size: exercisePageSize.value,
+          },
+        });
+        exercises.value = response.data.results || [];
+        exerciseTotal.value = response.data.count || 0;
+        exerciseDialogVisible.value = true;
+      } catch (error) {
+        ElMessage.error('获取题目列表失败');
+        console.error(error);
+      }
+    };
+
+const saveExercise = async (exerciseData) => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/exams/', {
-      params: {
-        page: currentPage.value,
-        page_size: pageSize.value,
+    const url = exerciseData.exercise_id
+      ? `http://127.0.0.1:8000/api/exercises/${exerciseData.exercise_id}/`
+      : 'http://127.0.0.1:8000/api/exercises/';
+    const method = exerciseData.exercise_id ? 'put' : 'post';
+    await axios({
+      method,
+      url,
+      data: {
+        exercise_id: exerciseData.exercise_id,
+        stem: exerciseData.stem,
+        questions: exerciseData.questions, // 包含 question_order
+        answer: exerciseData.answer,
+        analysis: exerciseData.analysis,
+        exam_id: currentExamId.value,
       },
     });
-    exams.value = response.data.results; // 分页数据
-    total.value = response.data.count;   // 总记录数
+    ElMessage.success(exerciseData.exercise_id ? '更新成功' : '添加成功');
+    fetchExercises(currentExamId.value); // 刷新列表
   } catch (error) {
-    ElMessage.error('获取试卷列表失败');
-    console.error(error);
+    ElMessage.error('保存失败');
+    console.error(error.response ? error.response.data : error);
   }
 };
 
-// 分页事件
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  fetchExams(); // 每页数量变化时重新加载
-};
+    // 查看下一级
+    const viewSchools = (row) => {
+      currentSchool.value = true;
+      currentExam.value = false;
+      currentCategoryId.value = row.category_id;
+      currentCategoryName.value = row.category_name;
+      currentPage.value = 1;
+      fetchSchools();
+      router.push(`/exam/category/${row.category_id}`);
+    };
 
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-  fetchExams(); // 页码变化时重新加载
-};
+    const viewExams = (row) => {
+      currentExam.value = true;
+      currentSchoolId.value = row.school_id;
+      currentSchoolName.value = row.name;
+      currentPage.value = 1;
+      fetchExams(row.school_id);
+      router.push(`/exam/category/${currentCategoryId.value}/school/${row.school_id}`);
+    };
 
-const showAddExamDialog = () => {
-  dialogTitle.value = '添加试卷';
-  examForm.value = { exam_id: null, exam_full_name: '', from_school: '', exam_time: '', exam_code: '' };
-  dialogVisible.value = true;
-};
+    // 查看题目
+    // const viewExercises = (row) => {
+    //   exercisePage.value = 1; // 重置分页
+    //   fetchExercises(row.exam_id);
+    // };
 
-const editExam = (row) => {
-  dialogTitle.value = '编辑试卷';
-  examForm.value = { ...row };
-  dialogVisible.value = true;
-};
+    // 添加/编辑弹窗
+    const showAddDialog = (type) => {
+      currentType.value = type;
+      dialogTitle.value = `添加${type === 'category' ? '专业' : type === 'school' ? '院校' : '试卷'}`;
+      form.value = {
+        category_id: null,
+        school_id: null,
+        exam_id: null,
+        category_name: '',
+        name: '',
+        exam_time: '',
+        exam_code: '',
+        exam_full_name: '',
+        from_school: type === 'exam' ? currentSchoolName.value : '',
+      };
+      dialogVisible.value = true;
+    };
 
-const saveExam = () => {
-  examFormRef.value.validate(async (valid) => {
-    if (valid) {
-      try {
-        if (examForm.value.exam_id) {
-          await axios.put(`http://127.0.0.1:8000/api/exams/${examForm.value.exam_id}/`, examForm.value);
-          ElMessage.success('试卷更新成功');
-        } else {
-          await axios.post('http://127.0.0.1:8000/api/exams/', examForm.value);
-          ElMessage.success('试卷添加成功');
-        }
-        dialogVisible.value = false;
-        fetchExams();
-      } catch (error) {
-        ElMessage.error('保存试卷失败');
-        console.error(error);
+    const editItem = (row, type) => {
+      currentType.value = type;
+      dialogTitle.value = `编辑${type === 'category' ? '专业' : type === 'school' ? '院校' : '试卷'}`;
+      if (type === 'category') {
+        form.value = { category_id: row.category_id, category_name: row.category_name };
+      } else if (type === 'school') {
+        form.value = { school_id: row.school_id, name: row.name };
+      } else if (type === 'exam') {
+        form.value = {
+          exam_id: row.exam_id,
+          exam_time: row.exam_time,
+          exam_code: row.exam_code || '',
+          exam_full_name: row.exam_full_name,
+          from_school: row.from_school || currentSchoolName.value,
+        };
       }
-    }
-  });
-};
+      dialogVisible.value = true;
+    };
 
-const deleteExam = (row) => {
-  ElMessageBox.confirm('确定删除该试卷吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(async () => {
-    try {
-      await axios.delete(`http://127.0.0.1:8000/api/exams/${row.exam_id}/`);
-      ElMessage.success('试卷删除成功');
-      fetchExams();
-    } catch (error) {
-      ElMessage.error('删除试卷失败');
-      console.error(error);
-    }
-  });
-};
+    // 保存数据
+    const saveItem = async () => {
+      const type = currentType.value;
+      let url = '';
+      let method = 'post';
+      let data = {};
 
-onMounted(() => {
-  fetchExams();
-});
+      switch (type) {
+        case 'category':
+          url = form.value.category_id
+            ? `http://127.0.0.1:8000/api/crud/categories/${form.value.category_id}/`
+            : 'http://127.0.0.1:8000/api/crud/categories/create/';
+          method = form.value.category_id ? 'put' : 'post';
+          data = { category_name: form.value.category_name };
+          break;
+        case 'school':
+          url = form.value.school_id
+            ? `http://127.0.0.1:8000/api/schools/${form.value.school_id}/`
+            : 'http://127.0.0.1:8000/api/schools/';
+          method = form.value.school_id ? 'put' : 'post';
+          data = { name: form.value.name };
+          break;
+        case 'exam':
+          url = form.value.exam_id
+            ? `http://127.0.0.1:8000/api/exams/${form.value.exam_id}/`
+            : 'http://127.0.0.1:8000/api/exams/';
+          method = form.value.exam_id ? 'put' : 'post';
+          data = {
+            category: currentCategoryId.value,
+            school: currentSchoolId.value,
+            from_school: form.value.from_school,
+            exam_time: form.value.exam_time,
+            exam_code: form.value.exam_code,
+            exam_full_name: form.value.exam_full_name,
+          };
+          break;
+      }
+
+      try {
+        await axios({ method, url, data });
+        ElMessage.success(form.value[type + '_id'] ? '更新成功' : '添加成功');
+        dialogVisible.value = false;
+        refreshList();
+      } catch (error) {
+        ElMessage.error('保存失败');
+        console.error(error.response ? error.response.data : error);
+      }
+    };
+
+    // 删除数据
+    const deleteItem = (row, type) => {
+      ElMessageBox.confirm(
+        `确定删除${type === 'category' ? '专业' : type === 'school' ? '院校' : '试卷'} ${row[type === 'category' ? 'category_name' : type === 'exam' ? 'exam_full_name' : 'name']} 吗？`,
+        '提示',
+        { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      ).then(async () => {
+        let url = '';
+        if (type === 'category') url = `http://127.0.0.1:8000/api/categories/${row.category_id}/`;
+        else if (type === 'school') url = `http://127.0.0.1:8000/api/schools/${row.school_id}/`;
+        else if (type === 'exam') url = `http://127.0.0.1:8000/api/exams/${row.exam_id}/`;
+
+        try {
+          await axios.delete(url);
+          ElMessage.success('删除成功');
+          refreshList();
+        } catch (error) {
+          ElMessage.error('删除失败');
+          console.error(error.response ? error.response.data : error);
+        }
+      }).catch(() => {
+        ElMessage.info('已取消删除');
+      });
+    };
+
+    // 刷新当前列表
+    const refreshList = () => {
+      if (currentExam.value) fetchExams(currentSchoolId.value);
+      else if (currentSchool.value) fetchSchools();
+      else fetchCategories();
+    };
+
+    // 分页事件
+    const handleSizeChange = (val) => {
+      pageSize.value = val;
+      refreshList();
+    };
+
+    const handleCurrentChange = (val) => {
+      currentPage.value = val;
+      refreshList();
+    };
+
+    // 题目分页事件
+    const handleExerciseSizeChange = (val) => {
+      exercisePageSize.value = val;
+      fetchExercises(exams.value.find(e => e.exam_id === currentExamId.value)?.exam_id);
+    };
+
+    const handleExerciseCurrentChange = (val) => {
+      exercisePage.value = val;
+      fetchExercises(exams.value.find(e => e.exam_id === currentExamId.value)?.exam_id);
+    };
+
+    // 当前试卷 ID
+    const currentExamId = ref(null);
+
+    // 更新 viewExercises 以记录当前 exam_id
+    const updatedViewExercises = (row) => {
+      currentExamId.value = row.exam_id;
+      exercisePage.value = 1;
+      fetchExercises(row.exam_id);
+    };
+
+    watch(
+      () => route.path,
+      (newPath) => {
+        currentPage.value = 1;
+        const schoolMatch = newPath.match(/\/exam\/category\/(\d+)/);
+        const examMatch = newPath.match(/\/exam\/category\/(\d+)\/school\/(\d+)/);
+
+        if (examMatch) {
+          currentSchool.value = true;
+          currentExam.value = true;
+          currentCategoryId.value = Number(examMatch[1]);
+          currentSchoolId.value = Number(examMatch[2]);
+          fetchExams(currentSchoolId.value);
+        } else if (schoolMatch) {
+          currentSchool.value = true;
+          currentExam.value = false;
+          currentCategoryId.value = Number(schoolMatch[1]);
+          fetchSchools();
+        } else {
+          currentSchool.value = false;
+          currentExam.value = false;
+          fetchCategories();
+        }
+      }
+    );
+
+    onMounted(() => {
+      fetchCategories();
+    });
+
+    return {
+      categories,
+      schools,
+      exams,
+      exercises,
+      currentSchool,
+      currentExam,
+      currentCategoryId,
+      currentCategoryName,
+      currentSchoolId,
+      currentSchoolName,
+      dialogVisible,
+      dialogTitle,
+      form,
+      currentType,
+      currentPage,
+      pageSize,
+      total,
+      saveExercise,
+      exerciseDialogVisible,
+      exercisePage,
+      exercisePageSize,
+      exerciseTotal,
+      fetchCategories,
+      fetchSchools,
+      fetchExams,
+      fetchExercises,
+      viewSchools,
+      viewExams,
+      viewExercises: updatedViewExercises, // Use the updated function name
+      showAddDialog,
+      editItem,
+      saveItem,
+      deleteItem,
+      handleSizeChange,
+      handleCurrentChange,
+      handleExerciseSizeChange,
+      handleExerciseCurrentChange,
+      refreshList,
+    };
+  },
+};
 </script>
 
 <style scoped>

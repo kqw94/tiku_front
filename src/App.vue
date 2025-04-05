@@ -1,3 +1,4 @@
+<!-- src/views/Layout.vue 或你的主布局文件 -->
 <template>
   <el-container style="height: 100vh;">
     <!-- 左侧菜单 -->
@@ -10,95 +11,99 @@
           <el-icon><House /></el-icon>
           <span>首页</span>
         </el-menu-item>
+    <!-- 题库管理（带子菜单） -->
+    <el-sub-menu index="question">
+      <template #title>
+        <el-icon><Document /></el-icon>
+        <span>题库管理</span>
+      </template>
+      <el-menu-item index="exercise-batch-edit">
+        <el-icon><Edit /></el-icon>
+        <span>题库编辑</span>
+      </el-menu-item>
+      <el-menu-item index="chapter">
+        <el-icon><Collection /></el-icon>
+        <span>章节管理</span>
+      </el-menu-item>
+      <el-menu-item index="exam-paper">
+        <el-icon><Tickets /></el-icon>
+        <span>试卷管理</span>
+      </el-menu-item>
+      <el-menu-item index="knowledge">
+        <el-icon><Notebook /></el-icon>
+        <span>知识点管理</span>
+      </el-menu-item>
+    </el-sub-menu>
 
-        <!-- 题库管理（带子菜单） -->
-        <el-sub-menu index="question">
-          <template #title>
-            <el-icon><Document /></el-icon>
-            <span>题库管理</span>
+    <!-- 工具箱子菜单 -->
+    <el-sub-menu index="toolbox">
+      <template #title>
+        <el-icon><Tools /></el-icon>
+        <span>工具箱</span>
+      </template>
+      <el-menu-item index="crawler-tool">
+        <el-icon><Search /></el-icon>
+        <span>爬虫工具</span>
+      </el-menu-item>
+      <el-menu-item index="llm-analysis">
+        <el-icon><Cpu /></el-icon>
+        <span>大模型解析</span>
+      </el-menu-item>
+      <el-menu-item index="format-convert">
+        <el-icon><Edit /></el-icon>
+        <span>格式转换</span>
+      </el-menu-item>
+      <el-menu-item index="image-upload">
+        <el-icon><Upload /></el-icon>
+        <span>图片上传</span>
+      </el-menu-item>
+    </el-sub-menu>
+
+    <!-- 用户管理（带子菜单） -->
+    <el-sub-menu index="user">
+      <template #title>
+        <el-icon><User /></el-icon>
+        <span>用户管理</span>
+      </template>
+      <el-menu-item index="user-management">
+        <el-icon><Avatar /></el-icon>
+        <span>用户管理</span>
+      </el-menu-item>
+      <el-menu-item index="permission">
+        <el-icon><Lock /></el-icon>
+        <span>权限管理</span>
+      </el-menu-item>
+    </el-sub-menu>
+  </el-menu>
+</el-aside>
+
+<!-- 右侧内容 -->
+<el-container>
+  <!-- 顶部导航 -->
+  <el-header>
+    <el-row type="flex" align="middle">
+      <el-col :span="12"><div></div></el-col>
+      <el-col :span="12" style="text-align: right;">
+        <el-dropdown>
+          <span class="el-dropdown-link">
+            管理员<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item>退出</el-dropdown-item>
+            </el-dropdown-menu>
           </template>
-          <el-menu-item index="exercise">
-            <el-icon><Collection /></el-icon>
-            <span>题库管理</span>
-          </el-menu-item>
-          <el-menu-item index="exam-paper">
-            <el-icon><Tickets /></el-icon>
-            <span>试卷管理</span>
-          </el-menu-item>
-          <el-menu-item index="knowledge">
-            <el-icon><Notebook /></el-icon>
-            <span>知识点管理</span>
-          </el-menu-item>
-          <!-- 新增工具箱子菜单 -->
-          
-        </el-sub-menu>
-        
-        <el-sub-menu index="toolbox">
-            <template #title>
-              <el-icon><Tools /></el-icon>
-              <span>工具箱</span>
-            </template>
-            <el-menu-item index="crawler-tool">
-              <el-icon><Search /></el-icon>
-              <span>爬虫工具</span>
-            </el-menu-item>
-            <el-menu-item index="llm-analysis">
-              <el-icon><Cpu /></el-icon>
-              <span>大模型解析</span>
-            </el-menu-item>
-            <el-menu-item index="format-convert">
-              <el-icon><Edit /></el-icon>
-              <span>格式转换</span>
-            </el-menu-item>
-            <el-menu-item index="image-upload">
-              <el-icon><Upload /></el-icon>
-              <span>图片上传</span>
-            </el-menu-item>
-          </el-sub-menu>
-        <!-- 用户管理（带子菜单） -->
-        <el-sub-menu index="user">
-          <template #title>
-            <el-icon><User /></el-icon>
-            <span>用户管理</span>
-          </template>
-          <el-menu-item index="user-management">
-            <el-icon><Avatar /></el-icon>
-            <span>用户管理</span>
-          </el-menu-item>
-          <el-menu-item index="permission">
-            <el-icon><Lock /></el-icon>
-            <span>权限管理</span>
-          </el-menu-item>
-        </el-sub-menu>
-      </el-menu>
-    </el-aside>
+        </el-dropdown>
+      </el-col>
+    </el-row>
+  </el-header>
 
-    <!-- 右侧内容 -->
-    <el-container>
-      <!-- 顶部导航 -->
-      <el-header>
-        <el-row type="flex" align="middle">
-          <el-col :span="12"><div></div></el-col>
-          <el-col :span="12" style="text-align: right;">
-            <el-dropdown>
-              <span class="el-dropdown-link">
-                管理员<el-icon class="el-icon--right"><ArrowDown /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item>退出</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </el-col>
-        </el-row>
-      </el-header>
+  <!-- 主内容区域 -->
+  <el-main>
+    <router-view />
+  </el-main>
+</el-container>
 
-      <!-- 主内容区域 -->
-      <el-main>
-        <router-view />
-      </el-main>
-    </el-container>
   </el-container>
 </template>
 
@@ -115,11 +120,11 @@ import {
   Avatar, 
   Lock, 
   ArrowDown,
-  Tools,        // 新增图标
-  Search,      // 爬虫工具
-  Cpu,         // 大模型解析
-  Edit,        // 格式转换
-  Upload       // 图片上传
+  Tools,
+  Search,
+  Cpu,
+  Edit,
+  Upload
 } from '@element-plus/icons-vue';
 
 const activeMenu = ref('home');
@@ -129,7 +134,8 @@ const handleMenuSelect = (key) => {
   activeMenu.value = key;
   const routeMap = {
     'home': '/',
-    'exercise': '/exercise',
+    'exercise-batch-edit': '/exercise/batch-edit', // 新增题库编辑路由
+    'chapter': '/chapter',                         // 改为章节管理
     'exam-paper': '/exam-paper',
     'knowledge': '/knowledge',
     'user-management': '/user-management',
@@ -170,3 +176,4 @@ const handleMenuSelect = (key) => {
   line-height: 60px;
 }
 </style>
+

@@ -6,10 +6,9 @@
       <el-table-column prop="major_name" label="科目" />
       <el-table-column label="操作" width="300">
         <template #default="scope">
-          <el-button type="text" @click="$emit('view-chapters', scope.row)">查看</el-button>
+          <el-button type="text" @click="$emit('view-chapters', scope.row)">查看章节</el-button>
           <el-button type="text" @click="$emit('edit', scope.row, 'major')">编辑</el-button>
           <el-button type="text" @click="$emit('delete', scope.row, 'major')">删除</el-button>
-          <el-button type="text" @click="$emit('batch-edit', scope.row, 'major')">批量编辑题目</el-button>      
           </template>
       </el-table-column>
     </el-table>
@@ -37,7 +36,7 @@ export default {
     pageSize: { type: Number, required: true },
     total: { type: Number, required: true },
   },
-  emits: ['add', 'view-chapters', 'edit', 'delete', 'size-change', 'current-change', 'batch-edit'],
+  emits: ['add', 'view-chapters', 'edit', 'delete', 'size-change', 'current-change'],
 };
 </script>
 

@@ -2,7 +2,7 @@
   <div>
     <!-- 面包屑导航（保持在外） -->
     <el-breadcrumb separator="/" style="margin-bottom: 20px;">
-      <el-breadcrumb-item :to="{ path: '/exercise' }">题库</el-breadcrumb-item>
+      <el-breadcrumb-item :to="{ path: '/chapter' }">题库</el-breadcrumb-item>
       <el-breadcrumb-item v-if="currentMajor" :to="{ path: `/exercise/major/${currentCategoryId}` }">
         {{ currentCategoryName }}
       </el-breadcrumb-item>
