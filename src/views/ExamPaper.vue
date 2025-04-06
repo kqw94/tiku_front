@@ -18,7 +18,7 @@
         <el-button type="primary" @click="showAddDialog('category')">添加专业</el-button>
         <el-table :data="categories" style="width: 100%; margin-top: 20px;" border>
           <el-table-column prop="category_id" label="ID" width="100" />
-          <el-table-column prop="category_name" label="专业名称" />
+          <el-table-column prop="category_name" label="专业" />
           <el-table-column label="操作" width="300">
             <template #default="scope">
               <el-button type="text" @click="viewSchools(scope.row)">查看院校</el-button>

@@ -29,6 +29,7 @@
         @view-majors="viewMajors"
         @edit="editItem"
         @delete="deleteItem"
+        @export-exercises="exportExercises"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
@@ -321,8 +322,8 @@ const saveExercise = async (exerciseData) => {
     // 添加/编辑弹窗
     const showAddDialog = (type) => {
       currentType.value = type;
-      dialogTitle.value = `添加${type === 'category' ? '分类' : type === 'major' ? '专业' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'}`;
-      formLabel.value = `${type === 'category' ? '分类' : type === 'major' ? '专业' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'}名称`;
+      dialogTitle.value = `添加${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'}`;
+      formLabel.value = `${type === 'category' ? '专业' : type === 'major' ? '科目' : type === 'chapter' ? '章节' : type === 'examgroup' ? '考点' : '题目'}名称`;
       form.value = { id: null, name: '' };
       dialogVisible.value = true;
     };
@@ -429,6 +430,29 @@ const saveExercise = async (exerciseData) => {
         ElMessage.info('已取消删除');
       });
     };
+
+  const exportExercises = async (row) => {
+      try {
+        const response = await axios.get(`http://127.0.0.1:8000/api/export-exercises-by-category/${row.category_id}/`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+          responseType: 'blob'  // 支持流式下载
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `exercises_category_${row.category_id}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        ElMessage.success('导出成功');
+      } catch (error) {
+        ElMessage.error('导出失败: ' + (error.response?.data?.error || error.message));
+        console.error(error);
+      }
+  };
 
     // 刷新当前列表
     const refreshList = () => {
@@ -566,6 +590,7 @@ const saveExercise = async (exerciseData) => {
       editItem,
       saveItem,
       deleteItem,
+      exportExercises,
       handleSizeChange,
       handleCurrentChange,
       handleExerciseSizeChange,

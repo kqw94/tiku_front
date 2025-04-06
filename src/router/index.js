@@ -4,19 +4,29 @@ import { createRouter, createWebHistory } from 'vue-router';
 // 使用动态导入实现懒加载
 const ExerciseManage = () => import('../views/ExerciseManage.vue');
 const ExamPaper = () => import('../views/ExamPaper.vue');
-const PermissionManage = () => import('../views/PermissionManage.vue');
+const UserManage = () => import('../views/UserManage.vue');
+const PermissionManage = () => import('../views/RoleManage.vue')
 // const BatchEditExercises = () => import('../views/BatchEditExercises.vue')
 const BatchEditLayout = () => import('../views/BatchEditLayout.vue')
 const PlaceHolder = () => import('../views/PlaceHolder.vue')
+const UserLogin = () => import('../components/Login.vue')
+const UserRegister = () => import('../components/Register.vue')
+const UserHome = () => import('../views/Home.vue')
+
 
 const routes = [
-  { path: '/', name: 'Home', component: PlaceHolder }, // 首页
+ 
+  { path: '/login', name: 'Login', component: UserLogin },
+  { path: '/register', name: 'Register', component: UserRegister },
+  { path: '/', redirect: '/login' }, // 默认重定向到登录页面
+  { path: '/:pathMatch(.*)*', redirect: '/login' }, // 未匹配路由也重定向到登录
+  { path: '/home', name: 'Home', component: UserHome, meta: { requiresAuth: true } },
   { path: '/exercise/batch-edit', name: 'ExerciseEdit', component: BatchEditLayout }, // 题库管理
   { path: '/chapter', name: 'chapter', component: ExerciseManage }, // 试卷管理
   { path: '/exam-paper', name: 'ExamPaper', component: ExamPaper }, // 试卷管理
   { path: '/knowledge', name: 'Knowledge', component: PlaceHolder }, // 知识点管理
-  { path: '/user-management', name: 'PermissionManage', component: PermissionManage }, // 用户管理
-  { path: '/permission', name: 'Permission', component: PlaceHolder }, // 权限管理
+  { path: '/user-management', name: 'UserManage', component: UserManage }, // 用户管理
+  { path: '/permission-management', name: 'PermissionManage', component: PermissionManage }, // 权限管理
   { path: '/toolbox/crawler-tool', name: 'CrawlerTool', component: PlaceHolder },
   { path: '/toolbox/llm-analysis', name: 'LlmAnalysis', component: PlaceHolder },
   { path: '/toolbox/format-convert', name: 'FormatConvert', component: PlaceHolder },
@@ -39,6 +49,17 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('access_token');
+  if (to.meta.requiresAuth && !token) {
+    next('/login');
+  } else if (to.path === '/login' && token) {
+    next('/home'); // 已登录时访问 /login 跳转到 /home
+  } else {
+    next();
+  }
 });
 
 export default router;
