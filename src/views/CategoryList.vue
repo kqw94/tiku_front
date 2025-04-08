@@ -4,12 +4,13 @@
     <el-table :data="categories" style="width: 100%; margin-top: 20px;" border>
       <el-table-column prop="category_id" label="ID" width="100" />
       <el-table-column prop="category_name" label="专业" />
-      <el-table-column label="操作" width="300">
+      <el-table-column label="操作" width="350"> <!-- 增加宽度以容纳新按钮 -->
         <template #default="scope">
           <el-button type="text" @click="$emit('view-majors', scope.row)">查看科目</el-button>
           <el-button type="text" @click="$emit('edit', scope.row, 'category')">编辑</el-button>
           <el-button type="text" @click="$emit('delete', scope.row, 'category')">删除</el-button>
           <el-button type="text" @click="$emit('export-exercises', scope.row)">导出</el-button>
+          <el-button type="text" @click="$emit('import-exercises', scope.row)">导入</el-button> <!-- 新增导入按钮 -->
         </template>
       </el-table-column>
     </el-table>
@@ -37,7 +38,17 @@ export default {
     pageSize: { type: Number, required: true },
     total: { type: Number, required: true },
   },
-  emits: ['add', 'view-majors', 'edit', 'delete', 'size-change', 'current-change', 'batch-edit', 'export-exercises'],
+  emits: [
+    'add',
+    'view-majors',
+    'edit',
+    'delete',
+    'size-change',
+    'current-change',
+    'batch-edit',
+    'export-exercises',
+    'import-exercises' // 新增导入事件
+  ],
 };
 </script>
 

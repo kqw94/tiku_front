@@ -30,6 +30,7 @@
         @edit="editItem"
         @delete="deleteItem"
         @export-exercises="exportExercises"
+        @import-exercises="importExercises"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
@@ -454,6 +455,39 @@ const saveExercise = async (exerciseData) => {
       }
   };
 
+
+  const importExercises = async () => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.json';
+      fileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+          ElMessage.error('请先选择一个 JSON 文件');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await axios.post('http://127.0.0.1:8000/api/import-exercises/', formData, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          ElMessage.success(response.data.message);
+          fetchCategories(); // 刷新分类列表
+        } catch (error) {
+          ElMessage.error('导入失败: ' + (error.response?.data?.error || error.message));
+          console.error(error);
+        }
+      };
+      fileInput.click();
+    };
+
+
     // 刷新当前列表
     const refreshList = () => {
       if (currentExercise.value) {
@@ -591,6 +625,7 @@ const saveExercise = async (exerciseData) => {
       saveItem,
       deleteItem,
       exportExercises,
+      importExercises,
       handleSizeChange,
       handleCurrentChange,
       handleExerciseSizeChange,
