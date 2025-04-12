@@ -1,55 +1,80 @@
-<!-- src/views/BatchEditExercises.vue -->
 <template>
   <div class="batch-edit-exercises" ref="exerciseContainer">
     <div class="exercise-list">
       <el-empty v-if="exercisesData.length === 0" description="暂无匹配的题目数据" />
-      <div v-else class="selection-bar">
-        <el-checkbox v-model="selectAll" @change="toggleSelectAll">全选</el-checkbox>
-        <span style="margin-left: 10px;">已选中 {{ selectedExercises.length }} 道题目</span>
-      </div>
       <el-card v-for="exercise in exercisesData" :key="exercise.exercise_id" class="exercise-card" shadow="hover">
+        <div class="exercise-id">{{ exercise.exercise_id }}</div>
         <div class="exercise-content">
-          <el-checkbox v-model="selectedExercises" :label="exercise.exercise_id" class="exercise-checkbox" />
-          
-          
           <div class="left-panel">
-            
-           
-           
             <!-- 编辑模式 -->
             <div class="section">
               <h3>题干</h3>
-              <el-input type="textarea" :rows="8" v-model="exercise.stem" :placeholder="`请输入题目 ${exercise.exercise_id} 的题干`" />
+              <el-input
+                type="textarea"
+                :rows="8"
+                v-model="exercise.stem"
+                :placeholder="`请输入题目 ${exercise.exercise_id} 的题干`"
+                @input="debouncedCheckModified(exercise, 'stem')"
+              />
             </div>
 
             <div class="section">
               <h3>问题</h3>
               <el-form>
-                <el-form-item v-for="q in exercise.questions" :key="q.question_id" :label="q.question_stem">
-                  <el-input v-model="q.question_answer" :placeholder="`请输入选项 ${q.question_stem}`" />
+                <el-form-item
+                  v-for="q in exercise.questions || []"
+                  :key="q.question_id || q.question_order"
+                  :label="q.question_stem || '未定义'"
+                >
+                  <el-input
+                    v-model="q.question_answer"
+                    :placeholder="`请输入选项 ${q.question_stem || '未定义'}`"
+                    @input="debouncedCheckModified(exercise, 'questions')"
+                  />
+                </el-form-item>
+                <el-form-item v-if="!exercise.questions || exercise.questions.length === 0">
+                  <el-button type="info" disabled>暂无问题</el-button>
                 </el-form-item>
               </el-form>
             </div>
 
             <div class="section">
               <h3>答案</h3>
-              <el-input type="textarea" :rows="3" v-model="exercise.answer.answer_content" placeholder="请输入答案" />
-              <el-radio-group v-model="exercise.answer.render_type" size="small" class="render-type-group">
+              <el-input
+                type="textarea"
+                :rows="3"
+                v-model="exercise.answer.answer_content"
+                placeholder="请输入答案"
+                :disabled="!exercise.answer"
+                @input="debouncedCheckModified(exercise, 'answer')"
+              />
+              <el-radio-group
+                v-model="exercise.answer.render_type"
+                size="small"
+                class="render-type-group"
+                :disabled="!exercise.answer"
+                @change="debouncedCheckModified(exercise, 'answer')"
+              >
                 <el-radio-button label="HTML">HTML</el-radio-button>
                 <el-radio-button label="markdown">Markdown</el-radio-button>
                 <el-radio-button label="plain">纯文本</el-radio-button>
               </el-radio-group>
-              <el-collapse v-if="exercise.answers && exercise.answers.length > 0">
-                <el-collapse-item title="历史答案">
-                  <el-table :data="exercise.answers" style="width: 100%">
-                    <el-table-column prop="answer_content" label="答案内容" min-width="200" />
-                    <el-table-column prop="render_type" label="渲染类型" width="100" />
-                    <el-table-column prop="mark" label="来源" width="80" />
-                    <el-table-column label="操作" width="100" align="center">
-                      <template #default="scope">
-                        <el-button size="small" @click="fillAnswer(exercise, scope.row)">填充</el-button>
-                      </template>
+              <el-collapse @change="activeNames => handleCollapseChange(activeNames, exercise, 'answers')">
+                <el-collapse-item title="历史答案" name="answers">
+                  <el-table :data="exercise.answers || []" style="width: 100%">
+                    <el-table-column v-if="exercise.isLoadingAnswers" label="加载中" align="center">
+                      <el-icon><loading /></el-icon>
                     </el-table-column>
+                    <template v-else>
+                      <el-table-column prop="answer_content" label="答案内容" min-width="200" />
+                      <el-table-column prop="render_type" label="渲染类型" width="100" />
+                      <el-table-column prop="mark" label="来源" width="80" />
+                      <el-table-column label="操作" width="100" align="center">
+                        <template #default="scope">
+                          <el-button size="small" @click="fillAnswer(exercise, scope.row)">填充</el-button>
+                        </template>
+                      </el-table-column>
+                    </template>
                   </el-table>
                 </el-collapse-item>
               </el-collapse>
@@ -57,59 +82,78 @@
 
             <div class="section">
               <h3>解析</h3>
-              <el-input type="textarea" :rows="16" v-model="exercise.analysis.analysis_content" placeholder="请输入解析" />
-              <el-radio-group v-model="exercise.analysis.render_type" size="small" class="render-type-group">
+              <el-input
+                type="textarea"
+                :rows="16"
+                v-model="exercise.analysis.analysis_content"
+                placeholder="请输入解析"
+                :disabled="!exercise.analysis"
+                @input="debouncedCheckModified(exercise, 'analysis')"
+              />
+              <el-radio-group
+                v-model="exercise.analysis.render_type"
+                size="small"
+                class="render-type-group"
+                :disabled="!exercise.analysis"
+                @change="debouncedCheckModified(exercise, 'analysis')"
+              >
                 <el-radio-button label="HTML">HTML</el-radio-button>
                 <el-radio-button label="markdown">Markdown</el-radio-button>
                 <el-radio-button label="plain">纯文本</el-radio-button>
               </el-radio-group>
-              <el-collapse v-if="exercise.analyses && exercise.analyses.length > 0">
-                <el-collapse-item title="历史解析">
-                  <el-table :data="exercise.analyses" style="width: 100%">
-                    <el-table-column prop="analysis_content" label="解析内容" min-width="200" />
-                    <el-table-column prop="render_type" label="渲染类型" width="100" />
-                    <el-table-column prop="mark" label="评分" width="80" />
-                    <el-table-column label="操作" width="100" align="center">
-                      <template #default="scope">
-                        <el-button size="small" @click="fillAnalysis(exercise, scope.row)">填充</el-button>
-                      </template>
+              <el-collapse @change="activeNames => handleCollapseChange(activeNames, exercise, 'analyses')">
+                <el-collapse-item title="历史解析" name="analyses">
+                  <el-table :data="exercise.analyses || []" style="width: 100%">
+                    <el-table-column v-if="exercise.isLoadingAnalyses" label="加载中" align="center">
+                      <el-icon><loading /></el-icon>
                     </el-table-column>
+                    <template v-else>
+                      <el-table-column prop="analysis_content" label="解析内容" min-width="200" />
+                      <el-table-column prop="render_type" label="渲染类型" width="100" />
+                      <el-table-column prop="mark" label="来源" width="80" />
+                      <el-table-column label="操作" width="100" align="center">
+                        <template #default="scope">
+                          <el-button size="small" @click="fillAnalysis(exercise, scope.row)">填充</el-button>
+                        </template>
+                      </el-table-column>
+                    </template>
                   </el-table>
                 </el-collapse-item>
               </el-collapse>
             </div>
-              <!-- 新增：题目详细信息（放在左下角） -->
-        <div class="section">
-          <el-collapse class="details-collapse">
-            <el-collapse-item title="题目详细信息" name="details">
-              <el-collapse class="sub-collapse">
-                <el-collapse-item title="章节目录" name="category">
-                  <div class="info-item">
-                    <p><strong>类别:</strong> {{ exercise.category_name || '未知' }}</p>
-                    <p><strong>专业:</strong> {{ exercise.major_name || '未知' }}</p>
-                    <p><strong>章节:</strong> {{ exercise.chapter_name || '未知' }}</p>
-                    <p><strong>考试组:</strong> {{ exercise.examgroup_name || '未知' }}</p>
-                  </div>
-                </el-collapse-item>
-                <el-collapse-item title="院校真题" name="exam">
-                  <div class="info-item">
-                    <p><strong>学校:</strong> {{ exercise.from_school || '未知' }}</p>
-                    <p><strong>考试时间:</strong> {{ exercise.exam_time || '未知' }}</p>
-                    <p><strong>考试代码:</strong> {{ exercise.exam_code || '未知' }}</p>
-                    <p><strong>考试全名:</strong> {{ exercise.exam_full_name || '未知' }}</p>
-                  </div>
-                </el-collapse-item>
-                <el-collapse-item title="题目属性" name="attributes">
-                  <div class="info-item">
-                    <p><strong>来源:</strong> {{ exercise.source_name || '未知' }}</p>
-                    <p><strong>难度:</strong> {{ exercise.level || '未知' }}</p>
-                    <p><strong>分数:</strong> {{ exercise.score || '未知' }}</p>
-                  </div>
+
+            <!-- 题目详细信息 -->
+            <div class="section">
+              <el-collapse class="details-collapse">
+                <el-collapse-item title="题目详细信息" name="details">
+                  <el-collapse class="sub-collapse">
+                    <el-collapse-item title="章节目录" name="category">
+                      <div class="info-item">
+                        <p><strong>类别:</strong> {{ exercise.category_name || '未知' }}</p>
+                        <p><strong>专业:</strong> {{ exercise.major_name || '未知' }}</p>
+                        <p><strong>章节:</strong> {{ exercise.chapter_name || '未知' }}</p>
+                        <p><strong>考试组:</strong> {{ exercise.examgroup_name || '未知' }}</p>
+                      </div>
+                    </el-collapse-item>
+                    <el-collapse-item title="院校真题" name="exam">
+                      <div class="info-item">
+                        <p><strong>学校:</strong> {{ exercise.from_school || '未知' }}</p>
+                        <p><strong>考试时间:</strong> {{ exercise.exam_time || '未知' }}</p>
+                        <p><strong>考试代码:</strong> {{ exercise.exam_code || '未知' }}</p>
+                        <p><strong>考试全名:</strong> {{ exercise.exam_full_name || '未知' }}</p>
+                      </div>
+                    </el-collapse-item>
+                    <el-collapse-item title="题目属性" name="attributes">
+                      <div class="info-item">
+                        <p><strong>来源:</strong> {{ exercise.source_name || '未知' }}</p>
+                        <p><strong>难度:</strong> {{ exercise.level || '未知' }}</p>
+                        <p><strong>分数:</strong> {{ exercise.score || '未知' }}</p>
+                      </div>
+                    </el-collapse-item>
+                  </el-collapse>
                 </el-collapse-item>
               </el-collapse>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
+            </div>
           </div>
 
           <div class="right-panel">
@@ -121,21 +165,29 @@
 
             <div class="section">
               <h3>问题预览</h3>
-              <div v-for="q in exercise.questions" :key="q.question_id" class="question-item">
-                <span v-html="`${q.question_stem}: ${q.question_answer}`"></span>
+              <div v-for="q in exercise.questions || []" :key="q.question_id || q.question_order" class="question-item">
+                <span v-html="`${q.question_stem || '未定义'}: ${q.question_answer || ''}`"></span>
+              </div>
+              <div v-if="!exercise.questions || exercise.questions.length === 0" class="question-item">
+                <span>暂无问题</span>
               </div>
             </div>
 
             <div class="section">
               <h3>答案预览</h3>
-              <div class="html-content" v-html="renderContent(exercise.answer.answer_content, exercise.answer.render_type)"></div>
+              <div
+                class="html-content"
+                v-html="renderContent(exercise.answer?.answer_content, exercise.answer?.render_type)"
+              ></div>
             </div>
 
             <div class="section">
               <h3>解析预览</h3>
-              <div class="html-content" v-html="renderContent(exercise.analysis.analysis_content, exercise.analysis.render_type)"></div>
+              <div
+                class="html-content"
+                v-html="renderContent(exercise.analysis?.analysis_content, exercise.analysis?.render_type)"
+              ></div>
             </div>
-            
           </div>
         </div>
       </el-card>
@@ -143,9 +195,6 @@
 
     <div class="floating-bar">
       <el-button type="primary" @click="saveCurrentPage">保存当前页面</el-button>
-      <el-button type="warning" @click="openBulkEditDialog" :disabled="selectedExercises.length === 0">
-        批量修改 ({{ selectedExercises.length }})
-      </el-button>
       <el-pagination
         background
         layout="prev, pager, next, jumper, sizes, total"
@@ -157,33 +206,6 @@
         @current-change="handleCurrentChange"
       />
     </div>
-
-    <!-- 批量修改对话框 -->
-    <el-dialog title="批量修改题目属性" v-model="bulkEditDialogVisible" width="400px" class="bulk-edit-dialog">
-      <el-form :model="bulkEditForm" label-position="top" label-width="80px">
-        <el-form-item label="考试组">
-          <el-cascader
-            v-model="bulkEditForm.examGroupPath"
-            :options="cascaderOptions"
-            :props="{ value: 'id', label: 'name', lazy: true, lazyLoad: lazyLoadCascader }"
-            placeholder="请选择考试组"
-            clearable
-            style="width: 100%;"
-            @change="handleExamGroupChange"
-          />
-        </el-form-item>
-        <el-form-item label="难度">
-          <el-slider v-model="bulkEditForm.level" :min="1" :max="5" show-stops />
-        </el-form-item>
-        <el-form-item label="分数">
-          <el-input-number v-model="bulkEditForm.score" :min="0" :max="100" :step="0.5" style="width: 100%;" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="bulkEditDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveBulkEdit">保存</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -193,9 +215,14 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { marked } from 'marked';
+import { Loading } from '@element-plus/icons-vue';
+import { cloneDeep, debounce } from 'lodash';
 
 export default {
   name: 'BatchEditExercises',
+  components: {
+    Loading,
+  },
   props: {
     filters: {
       type: Object,
@@ -209,111 +236,259 @@ export default {
     const total = ref(0);
     const exercisesData = ref([]);
     const exerciseContainer = ref(null);
-    const selectedExercises = ref([]);
-    const selectAll = ref(false);
-    const bulkEditDialogVisible = ref(false);
-    const bulkEditForm = ref({
-      examGroupPath: null,
-      level: null,
-      score: null,
-    });
-    const cascaderOptions = ref([]); // 初始为空，依赖懒加载
+    const answerCache = ref({});
+    const analysisCache = ref({});
 
+    // 初始化题目数据，添加初始状态和改动跟踪
+    const initializeExercise = (exercise) => {
+      return {
+        ...exercise,
+        stem: exercise.stem || '',
+        questions: exercise.questions || [],
+        answer: exercise.answer || {
+          answer_content: '',
+          render_type: 'HTML',
+          from_model: '',
+          mark: '',
+        },
+        analysis: exercise.analysis || {
+          analysis_content: '',
+          render_type: 'markdown',
+          mark: '',
+        },
+        answers: null,
+        analyses: null,
+        isLoadingAnswers: false,
+        isLoadingAnalyses: false,
+        // 保存初始数据用于比较
+        initialData: cloneDeep({
+          stem: exercise.stem || '',
+          questions: exercise.questions || [],
+          answer: exercise.answer || {
+            answer_content: '',
+            render_type: 'HTML',
+            from_model: '',
+            mark: '',
+          },
+          analysis: exercise.analysis || {
+            analysis_content: '',
+            render_type: 'markdown',
+            mark: '',
+          },
+        }),
+        // 改动跟踪
+        modifiedFields: {
+          stem: false,
+          questions: false,
+          answer: false,
+          analysis: false,
+        },
+      };
+    };
+
+    // 获取题目列表
     const fetchExercises = async () => {
       try {
         const params = {
           ...props.filters,
           page: currentPage.value,
           page_size: pageSize.value,
-          order_by: 'id',
-          order_direction: 'asc',
         };
-        // console.log('Fetching with params:', params);
         const response = await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
-        exercisesData.value = response.data.results || [];
+        exercisesData.value = (response.data.results || []).map(initializeExercise);
         total.value = response.data.count || 0;
       } catch (error) {
         console.error('Failed to fetch exercises:', error);
         exercisesData.value = [];
         total.value = 0;
+        ElMessage.error('加载题目失败');
       }
     };
 
-    // 懒加载函数，参考 ExerciseFilter 的分步加载
-    const lazyLoadCascader = async (node, resolve) => {
-      const { level, data } = node;
-      let nodes = [];
+    // 获取历史答案
+    const fetchAnswers = async (exercise) => {
+      if (exercise.answers === null && !exercise.isLoadingAnswers) {
+        exercise.isLoadingAnswers = true;
+        if (answerCache.value[exercise.exercise_id]) {
+          exercise.answers = answerCache.value[exercise.exercise_id];
+          exercise.isLoadingAnswers = false;
+        } else {
+          try {
+            const response = await axios.get(`http://127.0.0.1:8000/api/answers/${exercise.exercise_id}/`);
+            exercise.answers = Array.isArray(response.data.results) ? response.data.results : [];
+            answerCache.value[exercise.exercise_id] = exercise.answers;
+          } catch (error) {
+            console.error(`Failed to fetch answers for exercise ${exercise.exercise_id}:`, error);
+            exercise.answers = [];
+          } finally {
+            exercise.isLoadingAnswers = false;
+          }
+        }
+      }
+    };
 
-      try {
-        if (level === 0) {
-          // 加载类别
-          const response = await axios.get('http://127.0.0.1:8000/api/categories/');
-          nodes = (response.data.results || response.data).map(item => ({
-            id: item.category_id,
-            name: item.category_name,
-            leaf: false,
-          }));
-        } else if (level === 1) {
-          // 加载专业
-          const response = await axios.get(`http://127.0.0.1:8000/api/majors/${data.id}/`);
-          nodes = (response.data.results || response.data).map(item => ({
-            id: item.major_id,
-            name: item.major_name,
-            leaf: false,
-          }));
-        } else if (level === 2) {
-          // 加载章节
-          const response = await axios.get(`http://127.0.0.1:8000/api/chapters/${data.id}/`);
-          nodes = (response.data.results || response.data).map(item => ({
-            id: item.chapter_id,
-            name: item.chapter_name,
-            leaf: false,
-          }));
-        } else if (level === 3) {
-          // 加载考试组
-          const response = await axios.get(`http://127.0.0.1:8000/api/examgroups/${data.id}/`);
-          nodes = (response.data.results || response.data).map(item => ({
-            id: item.examgroup_id,
-            name: item.examgroup_name,
-            leaf: true, // 考试组是最后一级
+    // 获取历史解析
+    const fetchAnalyses = async (exercise) => {
+      if (exercise.analyses === null && !exercise.isLoadingAnalyses) {
+        exercise.isLoadingAnalyses = true;
+        if (analysisCache.value[exercise.exercise_id]) {
+          exercise.analyses = analysisCache.value[exercise.exercise_id];
+          exercise.isLoadingAnalyses = false;
+        } else {
+          try {
+            const response = await axios.get(`http://127.0.0.1:8000/api/analyses/${exercise.exercise_id}/`);
+            exercise.analyses = Array.isArray(response.data.results) ? response.data.results : [];
+            analysisCache.value[exercise.exercise_id] = exercise.analyses;
+          } catch (error) {
+            console.error(`Failed to fetch analyses for exercise ${exercise.exercise_id}:`, error);
+            exercise.analyses = [];
+          } finally {
+            exercise.isLoadingAnalyses = false;
+          }
+        }
+      }
+    };
+
+    // 处理折叠面板变化
+    const handleCollapseChange = (activeNames, exercise, type) => {
+      const isActive = Array.isArray(activeNames) ? activeNames.includes(type) : activeNames === type;
+      if (isActive) {
+        if (type === 'answers') {
+          fetchAnswers(exercise);
+        } else if (type === 'analyses') {
+          fetchAnalyses(exercise);
+        }
+      }
+    };
+
+    // 检查字段是否修改
+    const checkModified = (exercise, field) => {
+      if (field === 'stem') {
+        exercise.modifiedFields.stem = exercise.stem !== exercise.initialData.stem;
+      } else if (field === 'questions') {
+        exercise.modifiedFields.questions = !exercise.questions.every(
+          (q, i) => (q.question_answer || '') === (exercise.initialData.questions[i]?.question_answer || '')
+        );
+      } else if (field === 'answer') {
+        const oldAnswer = exercise.initialData.answer;
+        const newAnswer = exercise.answer;
+        exercise.modifiedFields.answer =
+          (newAnswer.answer_content || '') !== (oldAnswer.answer_content || '') ||
+          (newAnswer.render_type || 'HTML') !== (oldAnswer.render_type || 'HTML');
+      } else if (field === 'analysis') {
+        const oldAnalysis = exercise.initialData.analysis;
+        const newAnalysis = exercise.analysis;
+        exercise.modifiedFields.analysis =
+          (newAnalysis.analysis_content || '') !== (oldAnalysis.analysis_content || '') ||
+          (newAnalysis.render_type || 'markdown') !== (oldAnalysis.render_type || 'markdown');
+      }
+    };
+
+    // 防抖检查改动
+    const debouncedCheckModified = debounce((exercise, field) => {
+      checkModified(exercise, field);
+    }, 300);
+
+    // 检查题目是否有改动
+    const hasModifiedFields = (exercise) => {
+      return Object.values(exercise.modifiedFields).some((value) => value);
+    };
+
+    // 保存当前页面
+    const saveCurrentPage = async () => {
+      const requests = [];
+      const errors = [];
+
+      for (const exercise of exercisesData.value) {
+        if (!hasModifiedFields(exercise)) {
+          continue; // 跳过无改动的题目
+        }
+
+        // 构造请求体，包含所有改动字段
+        const payload = {};
+
+        if (exercise.modifiedFields.stem) {
+          payload.stem_write = exercise.stem || '';
+        }
+
+        if (exercise.modifiedFields.questions) {
+          payload.questions_write = (exercise.questions || []).map((q) => ({
+            question_order: q.question_order || 0,
+            question_answer: q.question_answer || '',
           }));
         }
-        resolve(nodes);
-      } catch (error) {
-        console.error(`Failed to load level ${level} data:`, error);
-        resolve([]);
-      }
-    };
 
-    const saveCurrentPage = async () => {
+        if (exercise.modifiedFields.answer) {
+          payload.answer_write = {
+            content: exercise.answer.answer_content || '',
+            render_type: exercise.answer.render_type || 'HTML',
+            from_model: exercise.answer.from_model || '',
+          };
+        }
+
+        if (exercise.modifiedFields.analysis) {
+          payload.analysis_write = {
+            content: exercise.analysis.analysis_content || '',
+            render_type: exercise.analysis.render_type || 'markdown',
+          };
+        }
+
+        // 发送请求
+        requests.push(
+          axios
+            .put(`http://127.0.0.1:8000/api/exercises/${exercise.exercise_id}/`, payload)
+            .then(() => {
+              // 更新初始数据，重置改动状态
+              exercise.initialData = cloneDeep({
+                stem: exercise.stem,
+                questions: exercise.questions,
+                answer: exercise.answer,
+                analysis: exercise.analysis,
+              });
+              exercise.modifiedFields = {
+                stem: false,
+                questions: false,
+                answer: false,
+                analysis: false,
+              };
+              return { exercise_id: exercise.exercise_id, status: 'success' };
+            })
+            .catch((error) => {
+              const message = error.response?.data
+                ? Object.values(error.response.data).flat().join('; ')
+                : '未知错误';
+              errors.push(`题目 ${exercise.exercise_id} 保存失败：${message}`);
+              return { exercise_id: exercise.exercise_id, status: 'error', message };
+            })
+        );
+      }
+
+      if (requests.length === 0) {
+        ElMessage.info('没有题目需要保存');
+        return;
+      }
+
       try {
-        const requests = exercisesData.value.map(exercise => {
-          const questions = exercise.questions.map(q => ({
-            question_order: q.question_order,
-            question_answer: q.question_answer,
-          }));
-          return axios.put(`http://127.0.0.1:8000/api/exercises/${exercise.exercise_id}/`, {
-            stem: exercise.stem,
-            questions: questions,
-            answer: {
-              answer_content: exercise.answer.answer_content,
-              render_type: exercise.answer.render_type || 'HTML',
-              from_model: exercise.answer.from_model || '',
-            },
-            analysis: {
-              analysis_content: exercise.analysis.analysis_content,
-              render_type: exercise.analysis.render_type || 'markdown',
-            },
+        const results = await Promise.all(requests);
+        const successCount = results.filter((r) => r.status === 'success').length;
+
+        if (errors.length > 0) {
+          ElMessage.error({
+            message: errors.join('; '),
+            duration: 5000,
           });
-        });
-        await Promise.all(requests);
-        ElMessage.success('当前页面所有题目保存成功');
+        }
+
+        if (successCount > 0) {
+          ElMessage.success(`成功保存 ${successCount} 道题目`);
+        }
       } catch (error) {
-        ElMessage.error('保存失败');
-        console.error(error.response ? error.response.data : error);
+        ElMessage.error('保存过程中发生错误');
+        console.error(error);
       }
     };
 
+    // 处理分页大小变化
     const handleSizeChange = (val) => {
       pageSize.value = val;
       currentPage.value = 1;
@@ -321,31 +496,44 @@ export default {
       scrollToTop();
     };
 
+    // 处理页码变化
     const handleCurrentChange = (val) => {
       currentPage.value = val;
       fetchExercises();
       scrollToTop();
     };
 
+    // 滚动到顶部
     const scrollToTop = () => {
       if (exerciseContainer.value) {
         exerciseContainer.value.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
 
+    // 填充答案
     const fillAnswer = (exercise, row) => {
-      exercise.answer.answer_content = row.answer_content;
+      if (!exercise.answer) {
+        exercise.answer = { answer_content: '', render_type: 'HTML', from_model: '', mark: '' };
+      }
+      exercise.answer.answer_content = row.answer_content || '';
       exercise.answer.render_type = row.render_type || 'HTML';
       exercise.answer.from_model = row.from_model || '';
-      exercise.answer.mark = row.mark || 0;
+      exercise.answer.mark = row.mark || '';
+      checkModified(exercise, 'answer');
     };
 
+    // 填充解析
     const fillAnalysis = (exercise, row) => {
-      exercise.analysis.analysis_content = row.analysis_content;
+      if (!exercise.analysis) {
+        exercise.analysis = { analysis_content: '', render_type: 'markdown', mark: '' };
+      }
+      exercise.analysis.analysis_content = row.analysis_content || '';
       exercise.analysis.render_type = row.render_type || 'markdown';
-      exercise.analysis.mark = row.mark || 0;
+      exercise.analysis.mark = row.mark || '';
+      checkModified(exercise, 'analysis');
     };
 
+    // 渲染内容
     const renderContent = (content, renderType) => {
       if (!content) return '';
       if (renderType === 'markdown') {
@@ -363,58 +551,22 @@ export default {
       return content;
     };
 
+    // 渲染题干
     const renderStem = (exercise) => {
-      //return `${exercise.exercise_id}. ${exercise.stem || ''}`;
       return `${exercise.stem || ''}`;
     };
 
-    const toggleSelectAll = (val) => {
-      if (val) {
-        selectedExercises.value = exercisesData.value.map(ex => ex.exercise_id);
-      } else {
-        selectedExercises.value = [];
-      }
-    };
-
-    const openBulkEditDialog = () => {
-      bulkEditForm.value = { examGroupPath: null, level: null, score: null };
-      bulkEditDialogVisible.value = true;
-    };
-
-    const handleExamGroupChange = (value) => {
-      bulkEditForm.value.exam_group = value; // 将选中的 examgroup_id 存储
-    };
-
-    const saveBulkEdit = async () => {
-      try {
-        const payload = {
-          exercise_ids: selectedExercises.value,
-          ...(bulkEditForm.value.exam_group !== null && { exam_group: bulkEditForm.value.exam_group }),
-          ...(bulkEditForm.value.level !== null && { level: bulkEditForm.value.level }),
-          ...(bulkEditForm.value.score !== null && { score: bulkEditForm.value.score }),
-        };
-        const response = await axios.post('http://127.0.0.1:8000/api/timu/bulk-update/', payload);
-        ElMessage.success(`成功更新 ${response.data.updated_ids.length} 道题目`);
-        bulkEditDialogVisible.value = false;
-        await fetchExercises();
-        selectedExercises.value = [];
-        selectAll.value = false;
-      } catch (error) {
-        ElMessage.error('批量修改失败');
-        console.error(error.response ? error.response.data : error);
-      }
-    };
-
+    // 监听筛选条件变化
     watch(
       () => props.filters,
-      (newFilters) => {
-        console.log('Filters updated in BatchEditExercises:', newFilters);
+      () => {
         currentPage.value = 1;
         fetchExercises();
       },
       { deep: true }
     );
 
+    // 组件挂载时初始化
     onMounted(() => {
       currentPage.value = Number(route.query.page) || 1;
       pageSize.value = Number(route.query.page_size) || 10;
@@ -427,11 +579,6 @@ export default {
       total,
       exercisesData,
       exerciseContainer,
-      selectedExercises,
-      selectAll,
-      bulkEditDialogVisible,
-      bulkEditForm,
-      cascaderOptions,
       saveCurrentPage,
       handleSizeChange,
       handleCurrentChange,
@@ -439,11 +586,8 @@ export default {
       fillAnalysis,
       renderContent,
       renderStem,
-      toggleSelectAll,
-      openBulkEditDialog,
-      saveBulkEdit,
-      handleExamGroupChange,
-      lazyLoadCascader,
+      handleCollapseChange,
+      debouncedCheckModified,
     };
   },
 };
@@ -463,6 +607,20 @@ export default {
 
 .exercise-card {
   margin-bottom: 20px;
+  position: relative;
+  padding-top: 30px;
+}
+
+.exercise-id {
+  position: relative;
+  display: inline-block;
+  margin: 10px 0 0 10px;
+  font-size: 12px;
+  color: #909399;
+  font-weight: normal;
+  opacity: 0.8;
+  line-height: 1;
+  z-index: 1;
 }
 
 .exercise-content {
@@ -548,26 +706,5 @@ export default {
 .el-input,
 .el-textarea {
   width: 100%;
-}
-
-.selection-bar {
-  margin-bottom: 10px;
-  padding: 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.exercise-checkbox {
-  margin-right: 10px;
-}
-
-.bulk-edit-dialog :deep(.el-form-item__label) {
-  font-size: 14px;
-  color: #606266;
-  padding-bottom: 5px;
-}
-
-.bulk-edit-dialog :deep(.el-form-item) {
-  margin-bottom: 20px;
 }
 </style>
