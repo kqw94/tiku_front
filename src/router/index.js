@@ -12,6 +12,8 @@ const PlaceHolder = () => import('../views/PlaceHolder.vue')
 const UserLogin = () => import('../components/Login.vue')
 const UserRegister = () => import('../components/Register.vue')
 const UserHome = () => import('../views/Home.vue')
+const UserActionLog = () => import('../views/UserActionLog.vue')
+const ImportExport = () => import('../views/ExerciseImportExport.vue')
 
 
 const routes = [
@@ -27,6 +29,8 @@ const routes = [
   { path: '/knowledge', name: 'Knowledge', component: PlaceHolder }, // 知识点管理
   { path: '/user-management', name: 'UserManage', component: UserManage }, // 用户管理
   { path: '/permission-management', name: 'PermissionManage', component: PermissionManage }, // 权限管理
+  { path: '/user-log', name: 'UserActionLog', component: UserActionLog }, // 日志管理
+  { path: '/import-export', name: 'ExerciseImportExport', component: ImportExport },
   { path: '/toolbox/crawler-tool', name: 'CrawlerTool', component: PlaceHolder },
   { path: '/toolbox/llm-analysis', name: 'LlmAnalysis', component: PlaceHolder },
   { path: '/toolbox/format-convert', name: 'FormatConvert', component: PlaceHolder },

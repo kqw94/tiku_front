@@ -21,6 +21,10 @@
               <el-icon><Edit /></el-icon>
               <span>题库编辑</span>
             </el-menu-item>
+            <el-menu-item index="import-export">
+              <el-icon><Edit /></el-icon>
+              <span>导入导出</span>
+            </el-menu-item>
             <el-menu-item index="chapter">
               <el-icon><Collection /></el-icon>
               <span>章节管理</span>
@@ -68,6 +72,10 @@
             <el-menu-item index="permission">
               <el-icon><Lock /></el-icon>
               <span>权限管理</span>
+            </el-menu-item>
+            <el-menu-item index="log">
+              <el-icon><Notebook /></el-icon>
+              <span>用户日志</span>
             </el-menu-item>
           </el-sub-menu>
         </el-menu>
@@ -136,11 +144,13 @@ const handleMenuSelect = (key) => {
   const routeMap = {
     'home': '/home',
     'exercise-batch-edit': '/exercise/batch-edit',
+    'import-export': '/import-export',
     'chapter': '/chapter',
     'exam-paper': '/exam-paper',
     'knowledge': '/knowledge',
     'user-management': '/user-management',
     'permission': '/permission-management',
+    'log': '/user-log',
     'crawler-tool': '/toolbox/crawler-tool',
     'llm-analysis': '/toolbox/llm-analysis',
     'format-convert': '/toolbox/format-convert',

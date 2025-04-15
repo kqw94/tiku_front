@@ -404,36 +404,38 @@ export default {
           continue; // 跳过无改动的题目
         }
 
-        // 构造请求体，包含所有改动字段
-        const payload = {};
+        
+
+        // 构造请求体
+        const payload = { };
 
         if (exercise.modifiedFields.stem) {
-          payload.stem_write = exercise.stem || '';
+          payload.stem = exercise.stem || '';
         }
 
         if (exercise.modifiedFields.questions) {
-          payload.questions_write = (exercise.questions || []).map((q) => ({
+          payload.questions = (exercise.questions || []).map((q) => ({
             question_order: q.question_order || 0,
             question_answer: q.question_answer || '',
           }));
         }
 
         if (exercise.modifiedFields.answer) {
-          payload.answer_write = {
-            content: exercise.answer.answer_content || '',
+          payload.answer = {
+            answer_content: exercise.answer.answer_content || '',
             render_type: exercise.answer.render_type || 'HTML',
             from_model: exercise.answer.from_model || '',
           };
         }
 
         if (exercise.modifiedFields.analysis) {
-          payload.analysis_write = {
-            content: exercise.analysis.analysis_content || '',
+          payload.analysis = {
+            analysis_content: exercise.analysis.analysis_content || '',
             render_type: exercise.analysis.render_type || 'markdown',
           };
         }
 
-        // 发送请求
+        // 发送更新请求
         requests.push(
           axios
             .put(`http://127.0.0.1:8000/api/exercises/${exercise.exercise_id}/`, payload)
