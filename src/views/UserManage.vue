@@ -91,7 +91,7 @@ const rules = {
 
 const fetchUsers = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/users/', {
+    const response = await axios.get('/users/', {
       params: { page: currentPage.value, page_size: pageSize.value },
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     });
@@ -107,7 +107,7 @@ const fetchUsers = async () => {
 
 const fetchRoles = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/roles/', {
+    const response = await axios.get('/roles/', {
       headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     });
     roles.value = response.data.results || [];
@@ -135,13 +135,13 @@ const saveUser = () => {
       try {
         if (userForm.value.id) {
           await axios.put(
-            `http://127.0.0.1:8000/api/users/${userForm.value.id}/`,
+            `/users/${userForm.value.id}/`,
             userForm.value,
             { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } }
           );
           ElMessage.success('用户更新成功');
         } else {
-          await axios.post('http://127.0.0.1:8000/api/users/', userForm.value, {
+          await axios.post('/users/', userForm.value, {
             headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           });
           ElMessage.success('用户添加成功');
@@ -163,7 +163,7 @@ const deleteUser = (row) => {
     type: 'warning',
   }).then(async () => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/users/${row.id}/`, {
+      await axios.delete(`/users/${row.id}/`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       ElMessage.success('用户删除成功');
@@ -195,7 +195,7 @@ const assignRole = (row) => {
 const saveRole = async () => {
   try {
     await axios.put(
-      `http://127.0.0.1:8000/api/users/${roleForm.value.id}/`,
+      `/users/${roleForm.value.id}/`,
       { role: roleForm.value.role },
       { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } }
     );

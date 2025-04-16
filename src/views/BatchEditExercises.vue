@@ -294,7 +294,7 @@ export default {
           page: currentPage.value,
           page_size: pageSize.value,
         };
-        const response = await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
+        const response = await axios.get('/exercises/', { params });
         exercisesData.value = (response.data.results || []).map(initializeExercise);
         total.value = response.data.count || 0;
       } catch (error) {
@@ -314,7 +314,7 @@ export default {
           exercise.isLoadingAnswers = false;
         } else {
           try {
-            const response = await axios.get(`http://127.0.0.1:8000/api/answers/${exercise.exercise_id}/`);
+            const response = await axios.get(`/answers/${exercise.exercise_id}/`);
             exercise.answers = Array.isArray(response.data.results) ? response.data.results : [];
             answerCache.value[exercise.exercise_id] = exercise.answers;
           } catch (error) {
@@ -336,7 +336,7 @@ export default {
           exercise.isLoadingAnalyses = false;
         } else {
           try {
-            const response = await axios.get(`http://127.0.0.1:8000/api/analyses/${exercise.exercise_id}/`);
+            const response = await axios.get(`/analyses/${exercise.exercise_id}/`);
             exercise.analyses = Array.isArray(response.data.results) ? response.data.results : [];
             analysisCache.value[exercise.exercise_id] = exercise.analyses;
           } catch (error) {
@@ -438,7 +438,7 @@ export default {
         // 发送更新请求
         requests.push(
           axios
-            .put(`http://127.0.0.1:8000/api/exercises/${exercise.exercise_id}/`, payload)
+            .put(`/exercises/${exercise.exercise_id}/`, payload)
             .then(() => {
               // 更新初始数据，重置改动状态
               exercise.initialData = cloneDeep({

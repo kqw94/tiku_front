@@ -474,7 +474,7 @@
   
     try {
       const response = await axios.post(
-        'http://127.0.0.1:8000/api/import-exercises/',
+        '/import-exercises/',
         formData,
         {
           headers: {
@@ -521,7 +521,7 @@
   const fetchCategories = async () => {
     categoriesLoading.value = true;
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/categories/', {
+      const response = await axios.get('/categories/', {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       categories.value = response.data.results || response.data || [];
@@ -537,7 +537,7 @@
   const fetchMajors = async (category_id) => {
     majorsLoading.value = true;
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/majors/${category_id}/`, {
+      const response = await axios.get(`/majors/${category_id}/`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       majors.value = response.data.results || response.data || [];
@@ -553,7 +553,7 @@
   const fetchChapters = async (major_id) => {
     chaptersLoading.value = true;
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/chapters/${major_id}/`, {
+      const response = await axios.get(`/chapters/${major_id}/`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       chapters.value = response.data.results || response.data || [];
@@ -569,7 +569,7 @@
   const fetchExamGroups = async (chapter_id) => {
     examgroupsLoading.value = true;
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/examgroups/${chapter_id}/`, {
+      const response = await axios.get(`/examgroups/${chapter_id}/`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       examgroups.value = response.data.results || response.data || [];
@@ -599,7 +599,7 @@
         examgroup_id: exportForm.value.examgroup_id || undefined,
       };
       const response = await axios.get(
-        'http://127.0.0.1:8000/api/export-exercises/',
+        '/export-exercises/',
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           params,
@@ -656,7 +656,7 @@
         if (!params[key] && params[key] !== 0) delete params[key];
       });
   
-      const response = await axios.get('http://127.0.0.1:8000/api/user-action-logs/', {
+      const response = await axios.get('/user-action-logs/', {
         params,
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });

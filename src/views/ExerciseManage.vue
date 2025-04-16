@@ -181,7 +181,7 @@ export default {
     // 获取所有 Category
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/categories/', {
+        const response = await axios.get('/categories/', {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         categories.value = response.data.results || [];
@@ -195,7 +195,7 @@ export default {
     // 获取 Majors
     const fetchMajors = async (categoryId) => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/majors/${categoryId}/`, {
+        const response = await axios.get(`/majors/${categoryId}/`, {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         majors.value = response.data.results || [];
@@ -210,7 +210,7 @@ export default {
     // 获取 Chapters
     const fetchChapters = async (majorId) => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/chapters/${majorId}/`, {
+        const response = await axios.get(`/chapters/${majorId}/`, {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         chapters.value = response.data.results || [];
@@ -225,7 +225,7 @@ export default {
     // 获取 ExamGroups
     const fetchExamGroups = async (chapterId) => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/examgroups/${chapterId}/`, {
+        const response = await axios.get(`/examgroups/${chapterId}/`, {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         examGroups.value = response.data.results || [];
@@ -245,7 +245,7 @@ export default {
           page_size: exercisePageSize.value,
           examgroup_id: examgroupId,
         };
-        const response = await axios.get('http://127.0.0.1:8000/api/exercises/', { params });
+        const response = await axios.get('/exercises/', { params });
         exercises.value = response.data.results || [];
         exerciseTotal.value = response.data.count || 0;
         exerciseDialogVisible.value = true;
@@ -260,8 +260,8 @@ export default {
 const saveExercise = async (exerciseData) => {
   try {
     const url = exerciseData.exercise_id
-      ? `http://127.0.0.1:8000/api/exercises/${exerciseData.exercise_id}/`
-      : 'http://127.0.0.1:8000/api/exercises/';
+      ? `/exercises/${exerciseData.exercise_id}/`
+      : '/exercises/';
     const method = exerciseData.exercise_id ? 'put' : 'post';
     await axios({
       method,
@@ -346,32 +346,32 @@ const saveExercise = async (exerciseData) => {
       switch (type) {
         case 'category':
           url = form.value.id
-            ? `http://127.0.0.1:8000/api/crud/categories/${form.value.id}/`
-            : 'http://127.0.0.1:8000/api/crud/categories/create/';
+            ? `/crud/categories/${form.value.id}/`
+            : '/crud/categories/create/';
           data = { category_name: formData.name };
           break;
         case 'major':
           url = form.value.id
-            ? `http://127.0.0.1:8000/api/crud/majors/${form.value.id}/`
-            : 'http://127.0.0.1:8000/api/crud/majors/create/';
+            ? `/crud/majors/${form.value.id}/`
+            : '/crud/majors/create/';
           data = { major_name: formData.name, category_id: currentCategoryId.value };
           break;
         case 'chapter':
           url = form.value.id
-            ? `http://127.0.0.1:8000/api/crud/chapters/${form.value.id}/`
-            : 'http://127.0.0.1:8000/api/crud/chapters/create/';
+            ? `/crud/chapters/${form.value.id}/`
+            : '/crud/chapters/create/';
           data = { chapter_name: formData.name, major_id: currentMajorId.value };
           break;
         case 'examgroup':
           url = form.value.id
-            ? `http://127.0.0.1:8000/api/crud/examgroups/${form.value.id}/`
-            : 'http://127.0.0.1:8000/api/crud/examgroups/create/';
+            ? `/crud/examgroups/${form.value.id}/`
+            : '/crud/examgroups/create/';
           data = { examgroup_name: formData.name, chapter_id: currentChapterId.value };
           break;
         case 'exercise':
           url = form.value.id
-            ? `http://127.0.0.1:8000/api/exercises/${form.value.id}/`
-            : 'http://127.0.0.1:8000/api/exercises/';
+            ? `/exercises/${form.value.id}/`
+            : '/exercises/';
           data = {
             exercise_id: formData.id || `${Date.now()}`,
             stem: { stem_content: formData.name },
@@ -403,19 +403,19 @@ const saveExercise = async (exerciseData) => {
         let url = '';
         switch (type) {
           case 'category':
-            url = `http://127.0.0.1:8000/api/crud/categories/${row[idField]}/`;
+            url = `/crud/categories/${row[idField]}/`;
             break;
           case 'major':
-            url = `http://127.0.0.1:8000/api/crud/majors/${row[idField]}/`;
+            url = `/crud/majors/${row[idField]}/`;
             break;
           case 'chapter':
-            url = `http://127.0.0.1:8000/api/crud/chapters/${row[idField]}/`;
+            url = `/crud/chapters/${row[idField]}/`;
             break;
           case 'examgroup':
-            url = `http://127.0.0.1:8000/api/crud/examgroups/${row[idField]}/`;
+            url = `/crud/examgroups/${row[idField]}/`;
             break;
           case 'exercise':
-            url = `http://127.0.0.1:8000/api/exercises/${row[idField]}/`;
+            url = `/exercises/${row[idField]}/`;
             break;
         }
 
@@ -434,7 +434,7 @@ const saveExercise = async (exerciseData) => {
 
   const exportExercises = async (row) => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/export-exercises-by-category/${row.category_id}/`, {
+        const response = await axios.get(`/export-exercises-by-category/${row.category_id}/`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           responseType: 'blob'  // 支持流式下载
         });
@@ -471,7 +471,7 @@ const saveExercise = async (exerciseData) => {
         formData.append('file', file);
 
         try {
-          const response = await axios.post('http://127.0.0.1:8000/api/import-exercises/', formData, {
+          const response = await axios.post('/import-exercises/', formData, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
               'Content-Type': 'multipart/form-data',

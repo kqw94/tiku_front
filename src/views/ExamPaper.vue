@@ -185,7 +185,7 @@ export default {
     // 获取所有 Category
     const fetchCategories = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/categories/', {
+        const response = await axios.get('/categories/', {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         categories.value = response.data.results || [];
@@ -199,7 +199,7 @@ export default {
     // 获取学校列表
     const fetchSchools = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/schools/', {
+        const response = await axios.get('/schools/', {
           params: { page: currentPage.value, page_size: pageSize.value },
         });
         schools.value = response.data.results || [];
@@ -213,7 +213,7 @@ export default {
     // 获取试卷列表
     const fetchExams = async (schoolId) => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/exams/', {
+        const response = await axios.get('/exams/', {
           params: {
             school_id: schoolId,
             category_id: currentCategoryId.value,
@@ -233,7 +233,7 @@ export default {
     // 获取题目列表
     const fetchExercises = async (examId) => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/exercises/', {
+        const response = await axios.get('/exercises/', {
           params: {
             exam_id: examId, // 假设后端支持按 exam_id 查询题目
             page: exercisePage.value,
@@ -252,8 +252,8 @@ export default {
 const saveExercise = async (exerciseData) => {
   try {
     const url = exerciseData.exercise_id
-      ? `http://127.0.0.1:8000/api/exercises/${exerciseData.exercise_id}/`
-      : 'http://127.0.0.1:8000/api/exercises/';
+      ? `/exercises/${exerciseData.exercise_id}/`
+      : '/exercises/';
     const method = exerciseData.exercise_id ? 'put' : 'post';
     await axios({
       method,
@@ -348,22 +348,22 @@ const saveExercise = async (exerciseData) => {
       switch (type) {
         case 'category':
           url = form.value.category_id
-            ? `http://127.0.0.1:8000/api/crud/categories/${form.value.category_id}/`
-            : 'http://127.0.0.1:8000/api/crud/categories/create/';
+            ? `/crud/categories/${form.value.category_id}/`
+            : '/crud/categories/create/';
           method = form.value.category_id ? 'put' : 'post';
           data = { category_name: form.value.category_name };
           break;
         case 'school':
           url = form.value.school_id
-            ? `http://127.0.0.1:8000/api/schools/${form.value.school_id}/`
-            : 'http://127.0.0.1:8000/api/schools/';
+            ? `/schools/${form.value.school_id}/`
+            : '/schools/';
           method = form.value.school_id ? 'put' : 'post';
           data = { name: form.value.name };
           break;
         case 'exam':
           url = form.value.exam_id
-            ? `http://127.0.0.1:8000/api/exams/${form.value.exam_id}/`
-            : 'http://127.0.0.1:8000/api/exams/';
+            ? `/exams/${form.value.exam_id}/`
+            : '/exams/';
           method = form.value.exam_id ? 'put' : 'post';
           data = {
             category: currentCategoryId.value,
@@ -395,9 +395,9 @@ const saveExercise = async (exerciseData) => {
         { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
       ).then(async () => {
         let url = '';
-        if (type === 'category') url = `http://127.0.0.1:8000/api/categories/${row.category_id}/`;
-        else if (type === 'school') url = `http://127.0.0.1:8000/api/schools/${row.school_id}/`;
-        else if (type === 'exam') url = `http://127.0.0.1:8000/api/exams/${row.exam_id}/`;
+        if (type === 'category') url = `/categories/${row.category_id}/`;
+        else if (type === 'school') url = `/schools/${row.school_id}/`;
+        else if (type === 'exam') url = `/exams/${row.exam_id}/`;
 
         try {
           await axios.delete(url);

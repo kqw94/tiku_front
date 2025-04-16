@@ -178,7 +178,7 @@
         if (!params[key] && params[key] !== 0) delete params[key];
       });
   
-      const response = await axios.get('http://127.0.0.1:8000/api/user-action-logs/', {
+      const response = await axios.get('/user-action-logs/', {
         params,
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
@@ -201,7 +201,7 @@
     })
       .then(async () => {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/user-action-logs/${row.id}/`, {
+          await axios.delete(`/user-action-logs/${row.id}/`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           });
           ElMessage.success('日志删除成功');

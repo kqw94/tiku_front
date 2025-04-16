@@ -128,7 +128,7 @@
   // 获取角色列表
   const fetchRoles = async () => {
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/roles/', {
+      const response = await axios.get('/roles/', {
         params: { page: currentPage.value, page_size: pageSize.value },
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
@@ -145,7 +145,7 @@
   // 获取角色的权限
   const fetchPermissions = async (roleId) => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/api/role-permissions/?role=${roleId}`, {
+      const response = await axios.get(`/role-permissions/?role=${roleId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       });
       permissionForm.value.permissions = response.data.map(perm => ({
@@ -181,13 +181,13 @@
         try {
           if (roleForm.value.id) {
             await axios.put(
-              `http://127.0.0.1:8000/api/roles/${roleForm.value.id}/`,
+              `/roles/${roleForm.value.id}/`,
               roleForm.value,
               { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } }
             );
             ElMessage.success('角色更新成功');
           } else {
-            await axios.post('http://127.0.0.1:8000/api/roles/', roleForm.value, {
+            await axios.post('/roles/', roleForm.value, {
               headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
             });
             ElMessage.success('角色添加成功');
@@ -209,7 +209,7 @@
       type: 'warning',
     }).then(async () => {
       try {
-        await axios.delete(`http://127.0.0.1:8000/api/roles/${row.id}/`, {
+        await axios.delete(`/roles/${row.id}/`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
         });
         ElMessage.success('角色删除成功');
@@ -257,7 +257,7 @@
         type: 'warning',
       }).then(async () => {
         try {
-          await axios.delete(`http://127.0.0.1:8000/api/role-permissions/${perm.id}/`, {
+          await axios.delete(`/role-permissions/${perm.id}/`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           });
           permissionForm.value.permissions.splice(index, 1);
@@ -276,7 +276,7 @@
     if (perm.id && perm.model_name) {
       try {
         await axios.put(
-          `http://127.0.0.1:8000/api/role-permissions/${perm.id}/`,
+          `/role-permissions/${perm.id}/`,
           {
             role: permissionForm.value.roleId,
             model_name: perm.model_name,
@@ -309,12 +309,12 @@
         };
         if (perm.id) {
           await axios.put(
-            `http://127.0.0.1:8000/api/role-permissions/${perm.id}/`,
+            `/role-permissions/${perm.id}/`,
             data,
             { headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` } }
           );
         } else {
-          const response = await axios.post('http://127.0.0.1:8000/api/role-permissions/', data, {
+          const response = await axios.post('/role-permissions/', data, {
             headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
           });
           perm.id = response.data.id; // 更新前端的 id

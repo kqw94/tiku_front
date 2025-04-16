@@ -157,10 +157,10 @@
       const fetchOptions = async () => {
         try {
           const responses = await Promise.all([
-            axios.get('http://127.0.0.1:8000/api/categories/'),
-            axios.get('http://127.0.0.1:8000/api/exercise-types/'),
-            axios.get('http://127.0.0.1:8000/api/sources/'),
-            axios.get('http://127.0.0.1:8000/api/exam-schools/'),  // 加载所有学校
+            axios.get('/categories/'),
+            axios.get('/exercise-types/'),
+            axios.get('/sources/'),
+            axios.get('/exam-schools/'),  // 加载所有学校
           ]);
           categories.value = responses[0].data.results || responses[0].data;
           exerciseTypes.value = responses[1].data;
@@ -195,7 +195,7 @@
       fetchMajors() {
         if (this.filters.category_id) {
           axios
-            .get(`http://127.0.0.1:8000/api/majors/${this.filters.category_id}/`)
+            .get(`/majors/${this.filters.category_id}/`)
             .then(response => {
               this.majors = response.data.results || response.data;
               this.filters.major_id = null;
@@ -213,7 +213,7 @@
       fetchChapters() {
         if (this.filters.major_id) {
           axios
-            .get(`http://127.0.0.1:8000/api/chapters/${this.filters.major_id}/`)
+            .get(`/chapters/${this.filters.major_id}/`)
             .then(response => {
               this.chapters = response.data.results || response.data;
               this.filters.chapter_id = null;
@@ -230,7 +230,7 @@
       fetchExamGroups() {
         if (this.filters.chapter_id) {
           axios
-            .get(`http://127.0.0.1:8000/api/examgroups/${this.filters.chapter_id}/`)
+            .get(`/examgroups/${this.filters.chapter_id}/`)
             .then(response => {
               this.examGroups = response.data.results || response.data;
               this.filters.examgroup_id = null;
@@ -247,7 +247,7 @@
         this.markChanged('exam_school');
         if (this.filters.exam_school) {
           axios
-            .get(`http://127.0.0.1:8000/api/exam-times/${encodeURIComponent(this.filters.exam_school)}/`)
+            .get(`/exam-times/${encodeURIComponent(this.filters.exam_school)}/`)
             .then(response => {
               this.examTimes = response.data;
               this.filters.exam_time = null;
@@ -266,7 +266,7 @@
         this.markChanged('exam_time');
         if (this.filters.exam_school && this.filters.exam_time) {
           axios
-            .get(`http://127.0.0.1:8000/api/exam-codes/${encodeURIComponent(this.filters.exam_school)}/${encodeURIComponent(this.filters.exam_time)}/`)
+            .get(`/exam-codes/${encodeURIComponent(this.filters.exam_school)}/${encodeURIComponent(this.filters.exam_time)}/`)
             .then(response => {
               this.examCodes = response.data;
               this.filters.exam_code = null;
@@ -284,7 +284,7 @@
         this.markChanged('exam_code');
         if (this.filters.exam_school && this.filters.exam_time && this.filters.exam_code) {
           axios
-            .get(`http://127.0.0.1:8000/api/exam-full-names/${encodeURIComponent(this.filters.exam_school)}/${encodeURIComponent(this.filters.exam_time)}/${encodeURIComponent(this.filters.exam_code)}/`)
+            .get(`/exam-full-names/${encodeURIComponent(this.filters.exam_school)}/${encodeURIComponent(this.filters.exam_time)}/${encodeURIComponent(this.filters.exam_code)}/`)
             .then(response => {
               this.examFullNames = response.data;
               this.filters.exam_full_name = null;
