@@ -38,7 +38,7 @@
               <span>知识点管理</span>
             </el-menu-item>
           </el-sub-menu>
-          <el-sub-menu index="toolbox">
+          <!-- <el-sub-menu index="toolbox">
             <template #title>
               <el-icon><Tools /></el-icon>
               <span>工具箱</span>
@@ -59,7 +59,7 @@
               <el-icon><Upload /></el-icon>
               <span>图片上传</span>
             </el-menu-item>
-          </el-sub-menu>
+          </el-sub-menu> -->
           <el-sub-menu index="user">
             <template #title>
               <el-icon><User /></el-icon>
@@ -112,8 +112,8 @@
 import { ref, computed, getCurrentInstance, onMounted, watch } from 'vue'; // 引入 getCurrentInstance
 import { useRouter, useRoute } from 'vue-router';
 import { 
-  House, Document, Collection, Tickets, Notebook, User, Avatar, Lock, ArrowDown,
-  Tools, Search, Cpu, Edit, Upload 
+  House, Document, Collection, Tickets, Notebook, User, Avatar, Lock, ArrowDown,Edit,
+  // Tools, Search, Cpu, Upload 
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
