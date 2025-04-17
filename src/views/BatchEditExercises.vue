@@ -165,8 +165,9 @@
 
             <div class="section">
               <h3>问题预览</h3>
+              <!-- 修改部分：使用 stripPTags 去除 <p> 标签 -->
               <div v-for="q in exercise.questions || []" :key="q.question_id || q.question_order" class="question-item">
-                <span v-html="`${q.question_stem || '未定义'}: ${q.question_answer || ''}`"></span>
+                <span v-html="`${q.question_stem || '未定义'}: ${stripPTags(q.question_answer || '')}`"></span>
               </div>
               <div v-if="!exercise.questions || exercise.questions.length === 0" class="question-item">
                 <span>暂无问题</span>
@@ -404,10 +405,8 @@ export default {
           continue; // 跳过无改动的题目
         }
 
-        
-
         // 构造请求体
-        const payload = { };
+        const payload = {};
 
         if (exercise.modifiedFields.stem) {
           payload.stem = exercise.stem || '';
@@ -535,6 +534,13 @@ export default {
       checkModified(exercise, 'analysis');
     };
 
+    // 新增方法：去除 <p> 标签，保留内容
+    const stripPTags = (html) => {
+      if (!html) return '';
+      // 匹配 <p> 标签（包括可能的属性）和 </p>
+      return html.replace(/<p\b[^>]*>(.*?)<\/p>/gi, '$1');
+    };
+
     // 渲染内容
     const renderContent = (content, renderType) => {
       if (!content) return '';
@@ -590,6 +596,7 @@ export default {
       renderStem,
       handleCollapseChange,
       debouncedCheckModified,
+      stripPTags, // 暴露 stripPTags 方法给模板
     };
   },
 };
@@ -670,8 +677,10 @@ export default {
 }
 
 .question-item {
-  margin: 8px 0;
-}
+    margin: 8px 0;
+    display: block; /* 确保每个选项独占一行 */
+    line-height: 2; /* 增加行间距以模拟空行效果 */
+  }
 
 .render-type-group {
   margin-top: 10px;
@@ -698,6 +707,7 @@ export default {
 
 .el-table th {
   background-color: #fafafa;
+
   font-weight: bold;
 }
 
