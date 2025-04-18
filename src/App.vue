@@ -115,6 +115,9 @@ import {
   House, Document, Collection, Tickets, Notebook, User, Avatar, Lock, ArrowDown,Edit,
   // Tools, Search, Cpu, Upload 
 } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+
+import axios from 'axios';
 
 const router = useRouter();
 const route = useRoute();
@@ -127,10 +130,33 @@ const updateUser = () => {
   user.value = JSON.parse(localStorage.getItem('user') || '{}');
 };
 
+// 检查令牌有效性
+const checkTokenValidity = async () => {
+  const accessToken = localStorage.getItem('access_token');
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!accessToken && refreshToken) {
+    try {
+      const response = await axios.post('/token/refresh/', { refresh: refreshToken });
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      updateUser();
+    } catch (error) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      router.push('/login');
+      ElMessage.error('会话已过期，请重新登录');
+    }
+  } else if (!accessToken && !refreshToken) {
+    router.push('/login');
+  }
+};
+
+
 // 在组件挂载时监听 storage 事件
 onMounted(() => {
   window.addEventListener('storage', updateUser);
-  updateUser(); // 初始加载时更新一次
+  checkTokenValidity(); // 初始检查令牌
 });
 
 // 当路由变化时更新 user（可选）
@@ -162,14 +188,20 @@ const handleMenuSelect = (key) => {
 const handleDropdownCommand = async (command) => {
   if (command === 'logout') {
     try {
-      await instance.appContext.config.globalProperties.$axios.post('/logout/', {});
+      const refreshToken = localStorage.getItem('refresh_token');
+      await instance.appContext.config.globalProperties.$axios.post('/logout/', { refresh: refreshToken });
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
-      instance.appContext.config.globalProperties.$message.success('退出成功');
+      ElMessage.success('退出成功');
       router.push('/login');
     } catch (error) {
-      instance.appContext.config.globalProperties.$message.error('退出失败');
+      // 即使登出失败，也清除本地存储
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      ElMessage.error('退出失败，已清除本地会话');
+      router.push('/login');
     }
   }
 };

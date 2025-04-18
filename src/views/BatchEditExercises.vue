@@ -680,7 +680,7 @@ export default {
     margin: 8px 0;
     display: block; /* 确保每个选项独占一行 */
     line-height: 2; /* 增加行间距以模拟空行效果 */
-  }
+}
 
 .render-type-group {
   margin-top: 10px;
