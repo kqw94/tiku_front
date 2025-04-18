@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, onMounted, watch } from 'vue'; // 引入 getCurrentInstance
+import { ref, computed,  onMounted, watch } from 'vue'; // 引入 getCurrentInstance
 import { useRouter, useRoute } from 'vue-router';
 import { 
   House, Document, Collection, Tickets, Notebook, User, Avatar, Lock, ArrowDown,Edit,
@@ -121,7 +121,6 @@ import axios from 'axios';
 
 const router = useRouter();
 const route = useRoute();
-const instance = getCurrentInstance(); // 获取组件实例
 const activeMenu = computed(() => route.path.split('/')[1] || 'home');
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
@@ -138,16 +137,19 @@ const checkTokenValidity = async () => {
     try {
       const response = await axios.post('/token/refresh/', { refresh: refreshToken });
       localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
+      localStorage.setItem('refresh_token', response.data.refresh); // 更新 refresh_token
       updateUser();
     } catch (error) {
+      console.error('Token check failed:', error);
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
-      router.push('/login');
-      ElMessage.error('会话已过期，请重新登录');
+      if (route.path !== '/login' && route.path !== '/register') {
+        router.push('/login');
+        ElMessage.error('会话已过期，请重新登录');
+      }
     }
-  } else if (!accessToken && !refreshToken) {
+  } else if (!accessToken && !refreshToken && route.path !== '/login' && route.path !== '/register') {
     router.push('/login');
   }
 };
@@ -185,18 +187,20 @@ const handleMenuSelect = (key) => {
   router.push(routeMap[key] || '/home');
 };
 
+
+
 const handleDropdownCommand = async (command) => {
   if (command === 'logout') {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
-      await instance.appContext.config.globalProperties.$axios.post('/logout/', { refresh: refreshToken });
+      await axios.post('/logout/', { refresh: refreshToken });
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
       ElMessage.success('退出成功');
       router.push('/login');
     } catch (error) {
-      // 即使登出失败，也清除本地存储
+      console.error('Logout failed:', error);
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
