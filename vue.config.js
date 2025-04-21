@@ -1,20 +1,8 @@
-const { defineConfig } = require('@vue/cli-service')
+// vue.config.js
+const { defineConfig } = require('@vue/cli-service');
+const config = require('./app.config');
+
 module.exports = defineConfig({
   transpileDependencies: true,
-  devServer: {
-    client: {
-      overlay: {
-        runtimeErrors: (error) => {
-          const ignoreErrors = [
-            "ResizeObserver loop limit exceeded",
-            "ResizeObserver loop completed with undelivered notifications.",
-          ];
-          if (ignoreErrors.includes(error.message)) {
-            return false;
-          }
-          return true;
-        },
-      },
-    },
-  },
-})
+  devServer: config.devServer,
+});

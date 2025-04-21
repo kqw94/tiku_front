@@ -1,9 +1,16 @@
+<!-- src/components/BatchEditExercise.vue -->
 <template>
   <div class="batch-edit-exercises" ref="exerciseContainer">
     <div class="exercise-list">
       <el-empty v-if="exercisesData.length === 0" description="暂无匹配的题目数据" />
       <el-card v-for="exercise in exercisesData" :key="exercise.exercise_id" class="exercise-card" shadow="hover">
         <div class="exercise-id">{{ exercise.exercise_id }}</div>
+        <el-checkbox
+          v-model="exercise.deleteStatus"
+          label=""
+          class="delete-checkbox"
+          @change="handleDeleteStatusChange"
+        />
         <div class="exercise-content">
           <div class="left-panel">
             <!-- 编辑模式 -->
@@ -165,7 +172,6 @@
 
             <div class="section">
               <h3>问题预览</h3>
-              <!-- 修改部分：使用 stripPTags 去除 <p> 标签 -->
               <div v-for="q in exercise.questions || []" :key="q.question_id || q.question_order" class="question-item">
                 <span v-html="`${q.question_stem || '未定义'}: ${stripPTags(q.question_answer || '')}`"></span>
               </div>
@@ -196,6 +202,13 @@
 
     <div class="floating-bar">
       <el-button type="primary" @click="saveCurrentPage">保存当前页面</el-button>
+      <el-button
+        type="danger"
+        :disabled="!hasSelectedForDeletion"
+        @click="deleteSelectedExercises"
+      >
+        删除选中题目
+      </el-button>
       <el-pagination
         background
         layout="prev, pager, next, jumper, sizes, total"
@@ -211,7 +224,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
@@ -261,7 +274,7 @@ export default {
         analyses: null,
         isLoadingAnswers: false,
         isLoadingAnalyses: false,
-        // 保存初始数据用于比较
+        deleteStatus: false, // 新增：删除状态
         initialData: cloneDeep({
           stem: exercise.stem || '',
           questions: exercise.questions || [],
@@ -277,7 +290,6 @@ export default {
             mark: '',
           },
         }),
-        // 改动跟踪
         modifiedFields: {
           stem: false,
           questions: false,
@@ -489,6 +501,41 @@ export default {
       }
     };
 
+   // 修改为检查 deleteStatus 的布尔值
+   const hasSelectedForDeletion = computed(() => {
+      return exercisesData.value.some(exercise => exercise.deleteStatus);
+    });
+
+  // 处理删除状态变化
+  const handleDeleteStatusChange = () => {
+      // 触发 computed 属性更新
+    };
+
+    // 修改 deleteSelectedExercises 以适配布尔值
+    const deleteSelectedExercises = async () => {
+      const toDelete = exercisesData.value.filter(exercise => exercise.deleteStatus);
+      if (toDelete.length === 0) {
+        ElMessage.warning('未选中任何题目进行删除');
+        return;
+      }
+
+      try {
+        const requests = toDelete.map(exercise =>
+          axios.delete(`/exercises/${exercise.exercise_id}/`)
+        );
+        await Promise.all(requests);
+
+        // 从前端移除已删除的题目
+        exercisesData.value = exercisesData.value.filter(exercise => !exercise.deleteStatus);
+        total.value -= toDelete.length;
+
+        ElMessage.success(`成功删除 ${toDelete.length} 道题目`);
+      } catch (error) {
+        const message = error.response?.data?.detail || '删除失败';
+        ElMessage.error(`删除失败：${message}`);
+      }
+    };
+
     // 处理分页大小变化
     const handleSizeChange = (val) => {
       pageSize.value = val;
@@ -596,7 +643,10 @@ export default {
       renderStem,
       handleCollapseChange,
       debouncedCheckModified,
-      stripPTags, // 暴露 stripPTags 方法给模板
+      stripPTags,
+      hasSelectedForDeletion,
+      handleDeleteStatusChange,
+      deleteSelectedExercises,
     };
   },
 };
@@ -630,6 +680,11 @@ export default {
   opacity: 0.8;
   line-height: 1;
   z-index: 1;
+}
+
+.delete-checkbox {
+  display: block;
+  margin: 5px 0 0 10px;
 }
 
 .exercise-content {
@@ -677,9 +732,9 @@ export default {
 }
 
 .question-item {
-    margin: 8px 0;
-    display: block; /* 确保每个选项独占一行 */
-    line-height: 2; /* 增加行间距以模拟空行效果 */
+  margin: 8px 0;
+  display: block;
+  line-height: 2;
 }
 
 .render-type-group {
@@ -692,7 +747,7 @@ export default {
   right: 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
   background-color: #fff;
   padding: 10px 20px;
   border-radius: 4px;
@@ -707,7 +762,6 @@ export default {
 
 .el-table th {
   background-color: #fafafa;
-
   font-weight: bold;
 }
 
