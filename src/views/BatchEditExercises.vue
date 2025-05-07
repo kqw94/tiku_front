@@ -31,9 +31,32 @@
                 <el-form-item
                   v-for="q in exercise.questions || []"
                   :key="q.question_id || q.question_order"
-                  :label="q.question_stem || '未定义'"
+                  :label="getTextLength(q.question_stem) <= 10 ? (q.question_stem || '未定义') : ''"
+                  :label-width="getTextLength(q.question_stem) <= 10 ? 'auto' : '0'"
                 >
+                  <!-- 对于长 question_stem，使用 textarea -->
                   <el-input
+                    v-if="getTextLength(q.question_stem) > 10"
+                    type="textarea"
+                    :rows="4"
+                    v-model="q.question_stem"
+                    placeholder="请输入问题题干"
+                    class="question-stem-textarea"
+                    @input="debouncedCheckModified(exercise, 'questions')"
+                  />
+                  <!-- 对于长 question_answer，使用 textarea -->
+                  <el-input
+                    v-if="getTextLength(q.question_answer) > 10"
+                    type="textarea"
+                    :rows="4"
+                    v-model="q.question_answer"
+                    :placeholder="`请输入选项 ${q.question_stem || '未定义'}`"
+                    class="question-answer-textarea"
+                    @input="debouncedCheckModified(exercise, 'questions')"
+                  />
+                  <!-- 对于短 question_answer，使用单行输入框 -->
+                  <el-input
+                    v-else
                     v-model="q.question_answer"
                     :placeholder="`请输入选项 ${q.question_stem || '未定义'}`"
                     @input="debouncedCheckModified(exercise, 'questions')"
@@ -274,7 +297,7 @@ export default {
         analyses: null,
         isLoadingAnswers: false,
         isLoadingAnalyses: false,
-        deleteStatus: false, // 新增：删除状态
+        deleteStatus: false,
         initialData: cloneDeep({
           stem: exercise.stem || '',
           questions: exercise.questions || [],
@@ -380,7 +403,9 @@ export default {
         exercise.modifiedFields.stem = exercise.stem !== exercise.initialData.stem;
       } else if (field === 'questions') {
         exercise.modifiedFields.questions = !exercise.questions.every(
-          (q, i) => (q.question_answer || '') === (exercise.initialData.questions[i]?.question_answer || '')
+          (q, i) =>
+            (q.question_stem || '') === (exercise.initialData.questions[i]?.question_stem || '') &&
+            (q.question_answer || '') === (exercise.initialData.questions[i]?.question_answer || '')
         );
       } else if (field === 'answer') {
         const oldAnswer = exercise.initialData.answer;
@@ -414,10 +439,9 @@ export default {
 
       for (const exercise of exercisesData.value) {
         if (!hasModifiedFields(exercise)) {
-          continue; // 跳过无改动的题目
+          continue;
         }
 
-        // 构造请求体
         const payload = {};
 
         if (exercise.modifiedFields.stem) {
@@ -427,6 +451,7 @@ export default {
         if (exercise.modifiedFields.questions) {
           payload.questions = (exercise.questions || []).map((q) => ({
             question_order: q.question_order || 0,
+            question_stem: q.question_stem || '',
             question_answer: q.question_answer || '',
           }));
         }
@@ -446,12 +471,10 @@ export default {
           };
         }
 
-        // 发送更新请求
         requests.push(
           axios
             .put(`/exercises/${exercise.exercise_id}/`, payload)
             .then(() => {
-              // 更新初始数据，重置改动状态
               exercise.initialData = cloneDeep({
                 stem: exercise.stem,
                 questions: exercise.questions,
@@ -501,32 +524,29 @@ export default {
       }
     };
 
-   // 修改为检查 deleteStatus 的布尔值
-   const hasSelectedForDeletion = computed(() => {
-      return exercisesData.value.some(exercise => exercise.deleteStatus);
+    // 检查是否有选中的题目
+    const hasSelectedForDeletion = computed(() => {
+      return exercisesData.value.some((exercise) => exercise.deleteStatus);
     });
 
-  // 处理删除状态变化
-  const handleDeleteStatusChange = () => {
+    // 处理删除状态变化
+    const handleDeleteStatusChange = () => {
       // 触发 computed 属性更新
     };
 
-    // 修改 deleteSelectedExercises 以适配布尔值
+    // 删除选中的题目
     const deleteSelectedExercises = async () => {
-      const toDelete = exercisesData.value.filter(exercise => exercise.deleteStatus);
+      const toDelete = exercisesData.value.filter((exercise) => exercise.deleteStatus);
       if (toDelete.length === 0) {
         ElMessage.warning('未选中任何题目进行删除');
         return;
       }
 
       try {
-        const requests = toDelete.map(exercise =>
-          axios.delete(`/exercises/${exercise.exercise_id}/`)
-        );
+        const requests = toDelete.map((exercise) => axios.delete(`/exercises/${exercise.exercise_id}/`));
         await Promise.all(requests);
 
-        // 从前端移除已删除的题目
-        exercisesData.value = exercisesData.value.filter(exercise => !exercise.deleteStatus);
+        exercisesData.value = exercisesData.value.filter((exercise) => !exercise.deleteStatus);
         total.value -= toDelete.length;
 
         ElMessage.success(`成功删除 ${toDelete.length} 道题目`);
@@ -581,11 +601,21 @@ export default {
       checkModified(exercise, 'analysis');
     };
 
-    // 新增方法：去除 <p> 标签，保留内容
+    // 去除 <p> 标签，保留内容
     const stripPTags = (html) => {
       if (!html) return '';
-      // 匹配 <p> 标签（包括可能的属性）和 </p>
       return html.replace(/<p\b[^>]*>(.*?)<\/p>/gi, '$1');
+    };
+
+    // 去除 HTML 标签，获取纯文本
+    const stripHtml = (html) => {
+      if (!html) return '';
+      return html.replace(/<[^>]+>/g, '');
+    };
+
+    // 计算纯文本长度
+    const getTextLength = (html) => {
+      return stripHtml(html).length;
     };
 
     // 渲染内容
@@ -644,6 +674,8 @@ export default {
       handleCollapseChange,
       debouncedCheckModified,
       stripPTags,
+      stripHtml,
+      getTextLength,
       hasSelectedForDeletion,
       handleDeleteStatusChange,
       deleteSelectedExercises,
@@ -735,6 +767,42 @@ export default {
   margin: 8px 0;
   display: block;
   line-height: 2;
+}
+
+.question-stem-textarea,
+.question-answer-textarea {
+  margin-bottom: 10px;
+  width: 100%;
+  resize: none;
+  white-space: pre-wrap;
+}
+
+.question-stem-textarea .el-textarea__inner,
+.question-answer-textarea .el-textarea__inner {
+  background-color: #fff;
+  border: 1px solid #dcdfe6;
+  color: #606266;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.el-form-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.el-form-item__label {
+  flex-shrink: 0;
+  margin-right: 10px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.el-form-item__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .render-type-group {
