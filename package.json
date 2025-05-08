@@ -13,8 +13,10 @@
     "core-js": "^3.8.3",
     "diff": "^7.0.0",
     "element-plus": "^2.9.7",
+    "katex": "^0.16.22",
     "lodash": "^4.17.21",
     "marked": "^15.0.7",
+    "marked-katex-extension": "^5.1.4",
     "vue": "^3.2.13",
     "vue-router": "^4.5.0"
   },

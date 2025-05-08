@@ -196,12 +196,16 @@
             <div class="section">
               <h3>问题预览</h3>
               <div v-for="q in exercise.questions || []" :key="q.question_id || q.question_order" class="question-item">
-                <span v-html="`${q.question_stem || '未定义'}: ${stripPTags(q.question_answer || '')}`"></span>
+                <!-- <div class="question-stem" v-html="renderContent(q.question_stem || '未定义', q.render_type || 'HTML')"></div>
+                <div class="question-answer" v-html="renderContent(stripPTags(q.question_answer || ''), q.render_type || 'HTML')"></div> -->
+                <span v-html="`${q.question_stem || '未定义'}  ${renderContent(stripPTags(q.question_answer || ''), q.render_type || 'HTML')}`"></span>
               </div>
               <div v-if="!exercise.questions || exercise.questions.length === 0" class="question-item">
                 <span>暂无问题</span>
               </div>
             </div>
+
+
 
             <div class="section">
               <h3>答案预览</h3>
@@ -252,6 +256,7 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { marked } from 'marked';
+import katex from 'katex';
 import { Loading } from '@element-plus/icons-vue';
 import { cloneDeep, debounce } from 'lodash';
 
@@ -618,28 +623,163 @@ export default {
       return stripHtml(html).length;
     };
 
-    // 渲染内容
-    const renderContent = (content, renderType) => {
-      if (!content) return '';
-      if (renderType === 'markdown') {
-        return marked(content);
-      } else if (renderType === 'HTML') {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(content, 'text/html');
-        const images = doc.getElementsByTagName('img');
-        for (let img of images) {
-          img.style.maxWidth = '100%';
-          img.style.height = 'auto';
-        }
-        return doc.body.innerHTML;
-      }
-      return content;
+    // 辅助函数：处理 LaTeX 内容
+    const processLatex = (latex) => {
+      // 去掉首尾 \( \)，兼容空内容
+      const cleanLatex = latex
+        .replace(/^\\\(([\s\S]*)\\\)$/, '$1') // 匹配 \( \)
+        .replace(/^\\\[([\s\S]*)\\\]$/, '$1')
+        .replace(/^\$\$([\s\S]*)\$\$$/, '$1') // 匹配 $$ $$
+        .trim();
+      // 替换单个反斜杠为双反斜杠
+      // return cleanLatex.replace(/\\/g, '\\\\');
+      return cleanLatex;
     };
 
-    // 渲染题干
+    // 渲染内容
+    // 渲染内容（用于答案、解析、问题）
+const renderContent = (content, renderType) => {
+  if (!content) return '';
+
+  // 处理 \( \) 包裹的 LaTeX 公式（所有模式）
+  const renderLatexInContent = (text) => {
+
+    text =  text.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
+      const latex = match;
+      const processedLatex = processLatex(latex);
+      const span = document.createElement('span');
+      try {
+        // console.log('Processed LaTeX (inline):', processedLatex); // 调试
+        katex.render(processedLatex, span, {
+          throwOnError: false,
+          displayMode: true, // Inline mode for \( \)
+        });
+        return `<div style="text-align: center;">${span.outerHTML}</div>`;
+      } catch (error) {
+        console.error('KaTeX 渲染错误 (display):', error, '原始 LaTeX:', latex);
+        return `LaTeX 渲染错误: ${latex}`;
+      }
+    });  
+
+    text =  text.replace(/\\\[.*?\\\]/gs, (match) => {
+      const latex = match;
+      const processedLatex = processLatex(latex);
+      const span = document.createElement('span');
+      try {
+        // console.log('Processed LaTeX (inline):', processedLatex); // 调试
+        katex.render(processedLatex, span, {
+          throwOnError: false,
+          displayMode: true, // Inline mode for \( \)
+        });
+        return `<div style="text-align: center;">${span.outerHTML}</div>`;
+      } catch (error) {
+        console.error('KaTeX 渲染错误 (display):', error, '原始 LaTeX:', latex);
+        return `LaTeX 渲染错误: ${latex}`;
+      }
+    });    
+
+    text =  text.replace(/\\\(.*?\\\)/gs, (match) => {
+      const latex = match;
+      const processedLatex = processLatex(latex);
+      const span = document.createElement('span');
+      try {
+        // console.log('Processed LaTeX (inline):', processedLatex); // 调试
+        katex.render(processedLatex, span, {
+          throwOnError: false,
+          displayMode: false, // Inline mode for \( \)
+        });
+        return span.outerHTML;
+      } catch (error) {
+        console.error('KaTeX 渲染错误 (inline):', error, '原始 LaTeX:', latex);
+        return `LaTeX 渲染错误: ${latex}`;
+      }
+    });
+
+  return text;
+    
+
+  };
+
+  if (renderType === 'markdown') {
+    // Markdown: 先渲染 Markdown，再处理 \( \) 公式
+    let preprocessedcontent = content
+        .replace(/\\\(([\s\S]*?)\\\)/g, '\\\\($1\\\\)')
+        .replace(/\\\[([\s\S]*?)\\\]/g, '\\\\[$1\\\\]');
+    let markdownContent = marked(preprocessedcontent);
+    // console.log('markdownContent', markdownContent)
+    return renderLatexInContent(markdownContent);
+  } else if (renderType === 'HTML') {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    const images = doc.getElementsByTagName('img');
+    const mathElements = doc.querySelectorAll('.math-tex');
+
+    // 处理图片
+    for (let img of images) {
+      img.style.maxWidth = '150%';
+      img.style.height = 'auto';
+    }
+
+    // 处理 <span class="math-tex"> 公式
+    mathElements.forEach((el) => {
+      const latex = el.textContent;
+      const processedLatex = processLatex(latex);
+      const span = document.createElement('span');
+      try {
+        // console.log('processedLatex (math-tex):', processedLatex); // 调试
+        katex.render(processedLatex, span, { throwOnError: false });
+        el.parentNode.replaceChild(span, el);
+      } catch (error) {
+        console.error('KaTeX 渲染错误 (math-tex):', error, '原始 LaTeX:', latex);
+        el.textContent = `LaTeX 渲染错误: ${latex}`;
+      }
+    });
+
+    // 处理 \( \) 公式
+    const htmlContent = doc.body.innerHTML;
+    return htmlContent;
+  } else if (renderType === 'plain') {
+    // Plain: 直接处理 \( \) 公式或整个内容
+    if (content.match(/\\\(|\\\[\$\$/)) {
+      return renderLatexInContent(content);
+    }
+    return content;
+  }
+
+  return renderLatexInContent(content);
+};
+
     const renderStem = (exercise) => {
-      return `${exercise.stem || ''}`;
+      const content = exercise.stem || '';
+      if (!content) return '';
+
+      // 假设题干可能是 HTML 或纯文本
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(content, 'text/html');
+        const mathElements = doc.querySelectorAll('.math-tex');
+
+        // 处理 LaTeX 公式
+        mathElements.forEach((el) => {
+          const latex = el.textContent;
+          const processedLatex = processLatex(latex);
+          const span = document.createElement('span');
+          try {
+            // console.log('processedLatex', processedLatex)
+            katex.render(processedLatex, span, { throwOnError: false });
+            el.parentNode.replaceChild(span, el);
+          } catch (error) {
+            el.textContent = `LaTeX 渲染错误: ${latex}`;
+          }
+        });
+
+        return doc.body.innerHTML;
+      } catch (error) {
+        // 如果不是有效 HTML，直接返回原始内容
+        return content;
+      }
     };
+
 
     // 监听筛选条件变化
     watch(
