@@ -198,7 +198,7 @@
               <div v-for="q in exercise.questions || []" :key="q.question_id || q.question_order" class="question-item">
                 <!-- <div class="question-stem" v-html="renderContent(q.question_stem || '未定义', q.render_type || 'HTML')"></div>
                 <div class="question-answer" v-html="renderContent(stripPTags(q.question_answer || ''), q.render_type || 'HTML')"></div> -->
-                <span v-html="`${q.question_stem || '未定义'}  ${renderContent(stripPTags(q.question_answer || ''), q.render_type || 'HTML')}`"></span>
+                <span v-html="`${renderContent(q.question_stem) || '未定义'}  ${renderContent(stripPTags(q.question_answer || ''), q.render_type || 'HTML')}`"></span>
               </div>
               <div v-if="!exercise.questions || exercise.questions.length === 0" class="question-item">
                 <span>暂无问题</span>
@@ -630,6 +630,7 @@ export default {
         .replace(/^\\\(([\s\S]*)\\\)$/, '$1') // 匹配 \( \)
         .replace(/^\\\[([\s\S]*)\\\]$/, '$1')
         .replace(/^\$\$([\s\S]*)\$\$$/, '$1') // 匹配 $$ $$
+        .replace(/^\$([\s\S]*)\$$/, '$1') // 匹配 $ $
         .trim();
       // 替换单个反斜杠为双反斜杠
       // return cleanLatex.replace(/\\/g, '\\\\');
@@ -677,6 +678,23 @@ const renderContent = (content, renderType) => {
         return `LaTeX 渲染错误: ${latex}`;
       }
     });    
+
+    text =  text.replace(/\$([\s\S]*?)\$/g, (match) => {
+      const latex = match;
+      const processedLatex = processLatex(latex);
+      const span = document.createElement('span');
+      try {
+        // console.log('Processed LaTeX (inline):', processedLatex); // 调试
+        katex.render(processedLatex, span, {
+          throwOnError: false,
+          displayMode: false, // Inline mode for \( \)
+        });
+        return span.outerHTML;
+      } catch (error) {
+        console.error('KaTeX 渲染错误 (inline):', error, '原始 LaTeX:', latex);
+        return `LaTeX 渲染错误: ${latex}`;
+      }
+    });
 
     text =  text.replace(/\\\(.*?\\\)/gs, (match) => {
       const latex = match;
